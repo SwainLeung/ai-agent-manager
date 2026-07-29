@@ -65,6 +65,10 @@ The public example graph uses built-in handlers so it can run without a model pr
 
 `LocalAgentAdapter` is the local entry point for gradual adoption. It routes a task, executes the example graph, persists checkpoints and traces under ignored `.agent-manager/`, and stores feedback as reversible candidates. It does not call a model or provider by itself; a host agent can use its plan and execution result to invoke the appropriate provider adapter.
 
+## Codex integration
+
+The repository-level `AGENTS.md` defines the public project contract. A local Codex installation can add a global `~/.codex/AGENTS.md` bridge that points non-trivial work to `LocalAgentAdapter`. The bridge is local configuration and should not be committed into this repository.
+
 ## Public boundary
 
 This repository contains generic code and examples only. Do not add credentials, provider keys, private prompts, user profiles, real domains, customer data, local absolute paths, or production logs.

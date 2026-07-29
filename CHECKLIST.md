@@ -47,3 +47,14 @@
 - [ ] Add a provider/tool adapter behind the public-neutral boundary.
 - [ ] Pilot one low-risk task and review its trace and feedback candidate.
 - [ ] Promote only reviewed feedback into project rules.
+
+## Codex host integration
+
+- [x] Add repository-level `AGENTS.md` with adapter and verification conventions.
+- [x] Install the local global Codex bridge at `~/.codex/AGENTS.md`.
+- [x] Smoke-test Codex bridge commands through `LocalAgentAdapter`.
+- [x] Add quick-start `ADAPTER.md` for other Agents.
+- [x] Add detailed adapter integration guide and machine-readable contract.
+- [x] Add minimal host Agent example and contract test.
+- [ ] Add automatic host-side feedback capture after user corrections.
+- [ ] Run a low-risk Codex task through the adapter and review its trace.

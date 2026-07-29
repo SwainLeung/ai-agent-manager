@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "name": "local-agent-adapter",
+  "purpose": "Provider-neutral bridge from a host Agent into routing, graph execution, trace recording, and reversible feedback.",
+  "operations": {
+    "prepare": {
+      "input": {"task": "string", "signals": "optional RouteSignals", "top_k": "integer >= 1"},
+      "output": {"task": "string", "decisions": "RouteDecision[]"}
+    },
+    "run": {
+      "input": {"task": "string", "inputs": "object", "graph": "optional path", "retry": "optional RetryPolicy"},
+      "output": {"context": "ExecutionContext", "trace": "path", "checkpoint": "path"}
+    },
+    "feedback": {
+      "input": {"event_type": "undo|redo|pitfall|fallback|correction|approval", "scope": "profile|project", "subject": "string", "note": "string", "confidence": "0..1"},
+      "output": {"status": "candidate", "storage": "ignored runtime state"}
+    },
+    "report": {
+      "input": {},
+      "output": {"feedback_candidates": "array", "lifecycle_proposals": "array", "entropy_findings": "array"}
+    }
+  },
+  "events": [
+    "run_started",
+    "run_resumed",
+    "node_started",
+    "node_finished",
+    "node_failed",
+    "checkpoint_saved",
+    "run_finished"
+  ],
+  "state_boundary": {
+    "default_directory": ".agent-manager/",
+    "git_tracked": false,
+    "public_files_must_not_contain": ["credentials", "private prompts", "user data", "production logs"]
+  },
+  "host_responsibilities": [
+    "model/provider calls",
+    "tool authentication",
+    "human approval",
+    "provider-specific handlers",
+    "promotion of feedback candidates"
+  ]
+}

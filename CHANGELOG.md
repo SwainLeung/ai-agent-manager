@@ -4,6 +4,18 @@
 
 - Reserved for future changes after public review.
 
+## [0.2.3] - 2026-07-29
+
+- Added `ADAPTER.md` and a detailed adapter integration guide for other Agents.
+- Added a machine-readable adapter contract and a minimal host integration example.
+- Added a contract test to keep the public integration surface discoverable.
+
+## [0.2.2] - 2026-07-29
+
+- Added repository-level `AGENTS.md` instructions for Codex and other local hosts.
+- Added documented global Codex bridge guidance for routing work through `LocalAgentAdapter`.
+- Kept the provider-neutral boundary intact: host agents remain responsible for model and tool calls.
+
 ## [0.2.1] - 2026-07-29
 
 - Added `LocalAgentAdapter` as the local control-plane bridge.

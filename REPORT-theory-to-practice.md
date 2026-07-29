@@ -1,8 +1,8 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 生成日期：2026-07-29
-> 项目版本：0.2.1
-> 测试通过：13/13 单元测试通过，public-check 通过
+> 项目版本：0.2.3
+> 测试通过：14/14 单元测试通过，public-check 通过
 > Git 状态：所有文件未提交（初始仓库）
 
 ---
@@ -24,6 +24,12 @@
 - 新增 `adapter prepare/run/feedback/report` CLI 流程。
 - 运行时数据继续保存在被 `.gitignore` 排除的 `.agent-manager/`，反馈先形成候选，不自动修改公开注册表。
 - 13 个单元测试和四条适配器 CLI 流程通过；下一阶段是接入一个真实本机 Agent 主机并进行低风险试运行。
+
+### v0.2.3 通用接入增量
+
+- 新增根目录 `ADAPTER.md`、`docs/adapter-integration.md` 和 `config/adapter-contract.json`。
+- 新增 `examples/adapter-host.py`，提供其他 Agent 的最小接入样例。
+- 契约测试通过；当前公共接入面已具备文档、机器契约、Python API、CLI 和状态边界说明。
 
 ---
 

@@ -175,6 +175,13 @@ class AgentManagerTests(unittest.TestCase):
             self.assertEqual(report["feedback_candidates"][0]["subject"], "tone")
             self.assertEqual(report["feedback_candidates"][0]["status"], "candidate")
 
+    def test_adapter_contract_is_machine_readable(self):
+        path = Path(__file__).parents[1] / "config" / "adapter-contract.json"
+        contract = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(contract["name"], "local-agent-adapter")
+        self.assertIn("prepare", contract["operations"])
+        self.assertIn("checkpoint_saved", contract["events"])
+
 
 if __name__ == "__main__":
     unittest.main()
