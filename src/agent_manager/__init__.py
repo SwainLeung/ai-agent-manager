@@ -5,7 +5,7 @@ from .adapter import AdapterPlan, AdapterRun, LocalAgentAdapter
 from .decision import DecisionMatrix, ExecutionProposal
 from .executor import ExecutionRecord, ProposalExecutor
 from .promotion import PromotionCandidate, PromotionLedger
-from .registry_apply import RegistryApplyError, RegistryApplier, RegistryPatch
+from .registry_apply import RegistryApplyError, RegistryApplier, RegistryApplyManifest, RegistryPatch
 from .execution import ExecutionContext, GraphExecutionError, GraphScheduler, NodeResult, RetryPolicy
 from .recorder import ExecutionRecorder, TraceEvent
 from .registry import SkillRegistry
@@ -29,6 +29,7 @@ __all__ = [
     "PromotionLedger",
     "RegistryApplyError",
     "RegistryApplier",
+    "RegistryApplyManifest",
     "RegistryPatch",
     "NodeResult",
     "RetryPolicy",

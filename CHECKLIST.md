@@ -42,6 +42,8 @@
 - 2026-07-29: added ProposalExecutor; Script proposals execute deterministically, Skill and human-review proposals remain pending, and large batches resume from checkpoints.
 - 2026-07-29: added promotion ledger; repeated Script success produces a reversible candidate, and human approval does not mutate the registry.
 - 2026-07-29: added RegistryApplier; approved candidates produce dry-run patches by default, and explicit writes remain candidate-status registry changes.
+- 2026-07-29: added registry apply manifests; plan/approve locks before-and-after hashes, explicit apply saves a backup, and rollback restores only when no external drift is detected.
+- 2026-07-29: CLI end-to-end test passed for manifest plan, approval, dry-run, apply, and rollback on an isolated temporary registry.
 
 ## Gradual local-agent adoption
 
@@ -72,5 +74,5 @@
 - [x] Execute a shadow batch through ProposalExecutor without registry mutation.
 - [ ] Add reviewed promotion ledger for repeated Script success.
 - [x] Add reviewed promotion ledger for repeated Script success.
-- [ ] Add separate versioned registry-apply workflow after promotion review.
 - [x] Add separate versioned registry-apply workflow after promotion review.
+- [x] Add exact-diff approval manifest and rollback/undo for reviewed registry apply.

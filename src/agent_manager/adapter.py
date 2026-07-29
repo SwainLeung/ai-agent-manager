@@ -128,9 +128,30 @@ class LocalAgentAdapter:
         ledger.save(self.promotion_path)
         return {"candidate": candidate.to_dict(), "ledger": str(self.promotion_path), "registry_mutated": False}
 
-    def apply_promotion(self, operation: str, *, registry_path: str | Path | None = None, write: bool = False) -> dict[str, Any]:
+    def create_promotion_manifest(self, operation: str, *, registry_path: str | Path | None = None, manifest_path: str | Path) -> dict[str, Any]:
         target = Path(registry_path) if registry_path else self.registry_path
-        patch = RegistryApplier(target, self.promotion_path).apply(operation, write=write)
+        patch = RegistryApplier(target, self.promotion_path).create_manifest(operation, manifest_path)
+        return patch.to_dict()
+
+    def approve_promotion_manifest(self, *, registry_path: str | Path | None = None, manifest_path: str | Path, note: str) -> dict[str, Any]:
+        target = Path(registry_path) if registry_path else self.registry_path
+        manifest = RegistryApplier(target, self.promotion_path).approve_manifest(manifest_path, note)
+        return {"manifest": manifest.to_dict(), "registry_mutated": False}
+
+    def apply_promotion(self, operation: str | None = None, *, registry_path: str | Path | None = None, write: bool = False, manifest_path: str | Path | None = None) -> dict[str, Any]:
+        target = Path(registry_path) if registry_path else self.registry_path
+        applier = RegistryApplier(target, self.promotion_path)
+        if manifest_path is not None:
+            patch = applier.apply_manifest(manifest_path, write=write)
+        elif operation:
+            patch = applier.apply(operation, write=write)
+        else:
+            raise ValueError("operation or manifest_path is required")
+        return patch.to_dict()
+
+    def rollback_promotion(self, *, registry_path: str | Path | None = None, manifest_path: str | Path, write: bool = False) -> dict[str, Any]:
+        target = Path(registry_path) if registry_path else self.registry_path
+        patch = RegistryApplier(target, self.promotion_path).rollback(manifest_path, write=write)
         return patch.to_dict()
 
     def run(

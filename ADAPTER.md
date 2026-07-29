@@ -61,7 +61,10 @@ For structured entities, use the decision matrix before execution:
 python scripts/agent-manager.py adapter decide --entity-file entities.json
 python scripts/agent-manager.py adapter execute --entity-file entities.json --summary-only
 python scripts/agent-manager.py adapter promote propose --checkpoint .agent-manager/checkpoints/entities.json
-python scripts/agent-manager.py adapter promote apply --operation duplicate_key --plan-file .agent-manager/promotion-plan.json
+python scripts/agent-manager.py adapter promote plan --operation duplicate_key --manifest-file .agent-manager/promotion.manifest.json
+python scripts/agent-manager.py adapter promote approve --manifest-file .agent-manager/promotion.manifest.json --note "reviewed isolated registry patch"
+python scripts/agent-manager.py adapter promote apply --manifest-file .agent-manager/promotion.manifest.json --write
+python scripts/agent-manager.py adapter promote rollback --manifest-file .agent-manager/promotion.manifest.json --write
 ```
 
 The matrix treats hashing, validation, link extraction, duplicate keys, and
@@ -88,9 +91,13 @@ python scripts/agent-manager.py adapter promote review `
 ```
 
 Approval records evidence and review status only. Applying a promotion to the
-registry remains a separate versioned change.
+registry remains a separate versioned change. The recommended transaction is
+`plan -> approve -> apply -> rollback`: the manifest records the registry
+before/after hashes, `apply --write` saves a backup, and rollback refuses to
+overwrite a registry that changed after apply.
 
 `promote apply` defaults to dry-run. It requires an approved candidate and
-rejects unapproved candidates or registry ID conflicts. Add `--write` only in
-an explicitly reviewed change workflow; the generated descriptor starts as a
-`candidate` registry entry rather than silently becoming stable.
+rejects unapproved candidates or registry ID conflicts. The manifest workflow
+adds a second approval boundary for the exact registry diff. Add `--write`
+only in an explicitly reviewed change workflow; the generated descriptor
+starts as a `candidate` registry entry rather than silently becoming stable.

@@ -201,11 +201,46 @@ def cmd_adapter_promote_review(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_adapter_promote_plan(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).create_promotion_manifest(
+        args.operation,
+        registry_path=args.registry_file,
+        manifest_path=args.manifest_file,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_promote_approve(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).approve_promotion_manifest(
+        registry_path=args.registry_file,
+        manifest_path=args.manifest_file,
+        note=args.note,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_adapter_promote_apply(args: argparse.Namespace) -> int:
-    result = adapter_from_args(args).apply_promotion(args.operation, registry_path=args.registry_file, write=args.write)
+    result = adapter_from_args(args).apply_promotion(
+        args.operation,
+        registry_path=args.registry_file,
+        manifest_path=args.manifest_file,
+        write=args.write,
+    )
     if args.plan_file:
         args.plan_file.parent.mkdir(parents=True, exist_ok=True)
         args.plan_file.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_promote_rollback(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).rollback_promotion(
+        registry_path=args.registry_file,
+        manifest_path=args.manifest_file,
+        write=args.write,
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
@@ -340,13 +375,32 @@ def build_parser() -> argparse.ArgumentParser:
     review_promotion.add_argument("--note", required=True)
     review_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     review_promotion.set_defaults(func=cmd_adapter_promote_review)
+    plan_promotion = promote_sub.add_parser("plan")
+    plan_promotion.add_argument("--operation", required=True)
+    plan_promotion.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    plan_promotion.add_argument("--manifest-file", required=True, type=Path)
+    plan_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    plan_promotion.set_defaults(func=cmd_adapter_promote_plan)
+    approve_promotion = promote_sub.add_parser("approve")
+    approve_promotion.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    approve_promotion.add_argument("--manifest-file", required=True, type=Path)
+    approve_promotion.add_argument("--note", required=True)
+    approve_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    approve_promotion.set_defaults(func=cmd_adapter_promote_approve)
     apply_promotion = promote_sub.add_parser("apply")
-    apply_promotion.add_argument("--operation", required=True)
+    apply_promotion.add_argument("--operation")
     apply_promotion.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    apply_promotion.add_argument("--manifest-file", type=Path)
     apply_promotion.add_argument("--plan-file", type=Path)
     apply_promotion.add_argument("--write", action="store_true")
     apply_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     apply_promotion.set_defaults(func=cmd_adapter_promote_apply)
+    rollback_promotion = promote_sub.add_parser("rollback")
+    rollback_promotion.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    rollback_promotion.add_argument("--manifest-file", required=True, type=Path)
+    rollback_promotion.add_argument("--write", action="store_true")
+    rollback_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    rollback_promotion.set_defaults(func=cmd_adapter_promote_rollback)
 
     feedback = adapter_sub.add_parser("feedback")
     feedback.add_argument("--event-type", required=True, choices=["undo", "redo", "pitfall", "fallback", "correction", "approval"])

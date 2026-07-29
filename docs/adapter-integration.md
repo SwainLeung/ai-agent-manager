@@ -107,19 +107,37 @@ python scripts/agent-manager.py adapter promote propose `
 
 The candidate is stored in `promotion-ledger.json`. A human may review it, but
 approval does not alter `skill-registry.json`; registry promotion requires a
-separate reviewed commit.
+separate reviewed manifest and commit.
 
-To inspect the exact registry patch without changing the registry:
+Create and approve an exact registry transaction without changing the
+registry:
+
+```powershell
+python scripts/agent-manager.py adapter promote plan `
+  --operation duplicate_key `
+  --manifest-file .agent-manager/promotion.manifest.json
+python scripts/agent-manager.py adapter promote approve `
+  --manifest-file .agent-manager/promotion.manifest.json `
+  --note "reviewed isolated registry diff"
+```
+
+The approved manifest can be dry-run or applied explicitly:
 
 ```powershell
 python scripts/agent-manager.py adapter promote apply `
-  --operation duplicate_key `
-  --plan-file .agent-manager/promotion-plan.json
+  --manifest-file .agent-manager/promotion.manifest.json
+python scripts/agent-manager.py adapter promote apply `
+  --manifest-file .agent-manager/promotion.manifest.json `
+  --write
+python scripts/agent-manager.py adapter promote rollback `
+  --manifest-file .agent-manager/promotion.manifest.json `
+  --write
 ```
 
-Only an explicit `--write` applies the approved descriptor. The applier checks
-approval status, duplicate IDs, and writes the new descriptor as a `candidate`
-Script. It never auto-promotes to `stable`.
+The manifest locks the registry before/after hashes. Apply saves a rollback
+backup and rollback checks the post-apply hash before restoring it. The applier
+writes the new descriptor as a `candidate` Script; it never auto-promotes to
+`stable`.
 
 ### Recoverable pauses
 

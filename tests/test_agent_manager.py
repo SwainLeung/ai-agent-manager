@@ -194,6 +194,67 @@ class AgentManagerTests(unittest.TestCase):
             ledger.save(ledger_path)
             with self.assertRaises(RegistryApplyError):
                 RegistryApplier(registry, ledger_path).apply("link_extract")
+
+    def test_registry_manifest_apply_and_rollback_is_hash_checked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            registry = root / "registry.json"
+            ledger_path = root / "promotion.json"
+            manifest_path = root / "duplicate-key.manifest.json"
+            original = b'{"schema_version": 1, "skills": []}\n'
+            registry.write_bytes(original)
+            ledger = PromotionLedger()
+            ledger.propose([
+                {"subject_id": "one", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+                {"subject_id": "two", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+                {"subject_id": "three", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+            ])
+            ledger.review("duplicate_key", "approve", "reviewed")
+            ledger.save(ledger_path)
+            applier = RegistryApplier(registry, ledger_path)
+
+            planned = applier.create_manifest("duplicate_key", manifest_path)
+            self.assertEqual(planned.status, "planned")
+            self.assertEqual(registry.read_bytes(), original)
+            approved = applier.approve_manifest(manifest_path, "approved for isolated fixture")
+            self.assertEqual(approved.status, "approved")
+            dry_run = applier.apply_manifest(manifest_path)
+            self.assertEqual(dry_run.status, "approved")
+            self.assertFalse(dry_run.registry_mutated)
+
+            applied = applier.apply_manifest(manifest_path, write=True)
+            self.assertEqual(applied.status, "applied")
+            self.assertTrue(Path(applied.backup_path).exists())
+            self.assertNotEqual(registry.read_bytes(), original)
+
+            rollback_plan = applier.rollback(manifest_path)
+            self.assertEqual(rollback_plan.status, "rollback-planned")
+            rolled_back = applier.rollback(manifest_path, write=True)
+            self.assertEqual(rolled_back.status, "rolled-back")
+            self.assertEqual(registry.read_bytes(), original)
+
+    def test_registry_manifest_refuses_drift_after_approval(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            registry = root / "registry.json"
+            ledger_path = root / "promotion.json"
+            manifest_path = root / "manifest.json"
+            registry.write_text(json.dumps({"schema_version": 1, "skills": []}) + "\n", encoding="utf-8")
+            ledger = PromotionLedger()
+            ledger.propose([
+                {"subject_id": "one", "operation": "snapshot_hash", "kind": "script", "status": "completed"},
+                {"subject_id": "two", "operation": "snapshot_hash", "kind": "script", "status": "completed"},
+                {"subject_id": "three", "operation": "snapshot_hash", "kind": "script", "status": "completed"},
+            ])
+            ledger.review("snapshot_hash", "approve", "reviewed")
+            ledger.save(ledger_path)
+            applier = RegistryApplier(registry, ledger_path)
+            applier.create_manifest("snapshot_hash", manifest_path)
+            applier.approve_manifest(manifest_path, "approved")
+            registry.write_text(json.dumps({"schema_version": 1, "skills": [{"id": "external.change"}]}) + "\n", encoding="utf-8")
+            with self.assertRaises(RegistryApplyError):
+                applier.apply_manifest(manifest_path, write=True)
+
     def test_registry_rejects_duplicate_ids(self):
         with self.assertRaises(RegistryError):
             SkillRegistry([skill(), skill()])
