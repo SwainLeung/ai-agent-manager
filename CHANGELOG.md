@@ -4,6 +4,13 @@
 
 - Reserved for future changes after public review.
 
+## [0.2.1] - 2026-07-29
+
+- Added `LocalAgentAdapter` as the local control-plane bridge.
+- Added adapter task preparation, graph execution, feedback recording, and improvement reports.
+- Added adapter CLI commands: `prepare`, `run`, `feedback`, and `report`.
+- Added adapter integration tests while keeping runtime state under ignored `.agent-manager/`.
+
 ## [0.2.0] - 2026-07-29
 
 - Added a provider-neutral Graph Scheduler with checkpoints and max-step protection.

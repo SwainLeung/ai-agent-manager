@@ -32,4 +32,18 @@
 - 2026-07-29: registry listing, deterministic route, graph validation, and public boundary check passed.
 - 2026-07-29: v0.2 Graph Scheduler example completed with checkpoint and 12-event trace.
 - 2026-07-29: 11 unit tests passed after adding scheduler, retry, fallback, resume, and recorder coverage.
-- 2026-07-29: no Git remote is configured; no public push was attempted.
+- 2026-07-29: 13 unit tests passed after adding Local Agent Adapter integration coverage.
+- 2026-07-29: adapter `prepare`, `run`, `feedback`, and `report` CLI flows passed.
+- 2026-07-29: public `main` is synchronized; runtime state remains ignored.
+
+## Gradual local-agent adoption
+
+- [x] Define `LocalAgentAdapter` as the single local control-plane entry point.
+- [x] Route tasks through `SkillRegistry` and `Router` before execution.
+- [x] Execute the example graph through the adapter with checkpoint and trace persistence.
+- [x] Record feedback as reversible profile/project candidates.
+- [x] Generate a combined feedback, lifecycle, and entropy report.
+- [ ] Connect one real local-agent host to `adapter prepare` and `adapter run`.
+- [ ] Add a provider/tool adapter behind the public-neutral boundary.
+- [ ] Pilot one low-risk task and review its trace and feedback candidate.
+- [ ] Promote only reviewed feedback into project rules.

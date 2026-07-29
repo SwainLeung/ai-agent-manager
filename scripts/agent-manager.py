@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from agent_manager.entropy import audit
+from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.execution import GraphScheduler, RetryPolicy
 from agent_manager.graph import GraphDefinition
 from agent_manager.lifecycle import propose
@@ -115,6 +116,63 @@ def cmd_trace_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def adapter_from_args(args: argparse.Namespace) -> LocalAgentAdapter:
+    return LocalAgentAdapter.for_project(ROOT, state_dir=args.state_dir)
+
+
+def adapter_signals(args: argparse.Namespace) -> RouteSignals:
+    return RouteSignals(
+        structured=getattr(args, "structured", False),
+        deterministic=getattr(args, "deterministic", False),
+        low_latency=getattr(args, "low_latency", False),
+        creative=getattr(args, "creative", False),
+    )
+
+
+def cmd_adapter_prepare(args: argparse.Namespace) -> int:
+    plan = adapter_from_args(args).prepare(args.task, adapter_signals(args), top_k=args.top_k)
+    print(json.dumps(plan.to_dict(), ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_run(args: argparse.Namespace) -> int:
+    adapter = adapter_from_args(args)
+    result = adapter.run(
+        args.task,
+        parse_input(args.input),
+        adapter_signals(args),
+        graph_path=args.file,
+        checkpoint=args.resume,
+        trace=args.trace,
+        max_attempts=args.max_attempts,
+        backoff_seconds=args.backoff_seconds,
+        max_steps=args.max_steps,
+    )
+    print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+    return 0 if result.context.status == "completed" else 1
+
+
+def cmd_adapter_feedback(args: argparse.Namespace) -> int:
+    event = adapter_from_args(args).record_feedback(
+        args.event_type,
+        args.scope,
+        args.subject,
+        args.note,
+        args.confidence,
+    )
+    print(json.dumps({"recorded": event.__dict__}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_report(args: argparse.Namespace) -> int:
+    report = adapter_from_args(args).report()
+    if args.output:
+        adapter_from_args(args).save_report(args.output)
+        report["report"] = str(args.output)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_audit(_: argparse.Namespace) -> int:
     registry = load_registry()
     findings = audit(list(registry.skills))
@@ -171,6 +229,44 @@ def build_parser() -> argparse.ArgumentParser:
     show = trace_sub.add_parser("show")
     show.add_argument("--file", required=True, type=Path)
     show.set_defaults(func=cmd_trace_show)
+
+    adapter = sub.add_parser("adapter")
+    adapter_sub = adapter.add_subparsers(dest="adapter_command", required=True)
+    prepare = adapter_sub.add_parser("prepare")
+    prepare.add_argument("--task", required=True)
+    prepare.add_argument("--top-k", type=int, default=3)
+    prepare.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    for option in ("structured", "deterministic", "low_latency", "creative"):
+        prepare.add_argument(f"--{option.replace('_', '-')}", action="store_true", dest=option)
+    prepare.set_defaults(func=cmd_adapter_prepare)
+
+    adapter_run = adapter_sub.add_parser("run")
+    adapter_run.add_argument("--task", required=True)
+    adapter_run.add_argument("--input", default="{}")
+    adapter_run.add_argument("--file", type=Path)
+    adapter_run.add_argument("--resume", type=Path)
+    adapter_run.add_argument("--trace", type=Path)
+    adapter_run.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    adapter_run.add_argument("--max-attempts", type=int, default=1)
+    adapter_run.add_argument("--backoff-seconds", type=float, default=0.0)
+    adapter_run.add_argument("--max-steps", type=int, default=100)
+    for option in ("structured", "deterministic", "low_latency", "creative"):
+        adapter_run.add_argument(f"--{option.replace('_', '-')}", action="store_true", dest=option)
+    adapter_run.set_defaults(func=cmd_adapter_run)
+
+    feedback = adapter_sub.add_parser("feedback")
+    feedback.add_argument("--event-type", required=True, choices=["undo", "redo", "pitfall", "fallback", "correction", "approval"])
+    feedback.add_argument("--scope", required=True, choices=["profile", "project"])
+    feedback.add_argument("--subject", required=True)
+    feedback.add_argument("--note", required=True)
+    feedback.add_argument("--confidence", type=float, default=0.5)
+    feedback.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    feedback.set_defaults(func=cmd_adapter_feedback)
+
+    report = adapter_sub.add_parser("report")
+    report.add_argument("--output", type=Path)
+    report.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    report.set_defaults(func=cmd_adapter_report)
 
     audit_command = sub.add_parser("audit")
     audit_command.set_defaults(func=cmd_audit)

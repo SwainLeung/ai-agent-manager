@@ -42,3 +42,13 @@ class FeedbackStore:
 
     def save(self, path: str | Path) -> None:
         Path(path).write_text(json.dumps([asdict(item) for item in self.events], ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    @classmethod
+    def load(cls, path: str | Path) -> "FeedbackStore":
+        source = Path(path)
+        if not source.exists():
+            return cls()
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        if not isinstance(payload, list):
+            raise ValueError("feedback store must contain a list")
+        return cls(FeedbackEvent(**item) for item in payload)

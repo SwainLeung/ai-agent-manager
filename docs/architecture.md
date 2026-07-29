@@ -27,6 +27,7 @@ task
 - `graph.py`: loads and validates explicit nodes, edges, starts, and fallbacks.
 - `execution.py`: executes graphs with retries, error-edge fallbacks, checkpoints, and step limits.
 - `recorder.py`: records structured run traces and persists them as JSON.
+- `adapter.py`: bridges a local agent into routing, graph execution, feedback, and improvement reports.
 - `entropy.py`: finds lifecycle stalls, low-success capabilities, and duplicate
   signatures.
 
@@ -47,3 +48,11 @@ Applications may add provider adapters, vector indexes, custom execution
 handlers, human approval nodes, and persistent stores. Those integrations
 should remain behind explicit interfaces and should never make secrets part of
 registry metadata, graph definitions, or traces.
+
+## Local adoption boundary
+
+`LocalAgentAdapter` is the recommended integration seam for a host agent. It
+keeps public contracts in the repository while placing traces, checkpoints, and
+feedback events in the ignored `.agent-manager/` runtime directory. Feedback is
+reported as a candidate first; it does not silently mutate the registry or
+project rules.

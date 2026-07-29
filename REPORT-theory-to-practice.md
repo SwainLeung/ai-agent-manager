@@ -1,8 +1,8 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 生成日期：2026-07-29
-> 项目版本：0.2.0
-> 测试通过：11/11 单元测试通过，public-check 通过
+> 项目版本：0.2.1
+> 测试通过：13/13 单元测试通过，public-check 通过
 > Git 状态：所有文件未提交（初始仓库）
 
 ---
@@ -17,6 +17,13 @@
 - 示例 Graph 已实际执行成功，产生 12 条 trace 事件；新增测试后总计 11 个单元测试通过。
 
 本版本仍暂不实现自动反思器、规则蒸馏器和 Skill→Script 自动编译，这些保留为后续版本。
+
+### v0.2.1 本机适配增量
+
+- 新增 `LocalAgentAdapter`，作为本机 Agent 进入 Router、Graph Scheduler、Recorder 和 FeedbackStore 的统一入口。
+- 新增 `adapter prepare/run/feedback/report` CLI 流程。
+- 运行时数据继续保存在被 `.gitignore` 排除的 `.agent-manager/`，反馈先形成候选，不自动修改公开注册表。
+- 13 个单元测试和四条适配器 CLI 流程通过；下一阶段是接入一个真实本机 Agent 主机并进行低风险试运行。
 
 ---
 

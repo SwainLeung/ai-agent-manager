@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.entropy import audit
 from agent_manager.execution import GraphScheduler, NodeResult, RetryPolicy
 from agent_manager.feedback import FeedbackStore
@@ -155,6 +156,24 @@ class AgentManagerTests(unittest.TestCase):
             context = GraphScheduler(graph, checkpoint_path=checkpoint).run(checkpoint=checkpoint)
             self.assertEqual(context.status, "completed")
             self.assertEqual(context.run_id, "resume-run")
+
+    def test_local_adapter_prepares_and_runs_task(self):
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)
+            plan = adapter.prepare("summarize a report", RouteSignals(structured=True))
+            self.assertEqual(plan.decisions[0].skill_id, "domain.report-synthesis")
+            result = adapter.run("summarize a report", {"structured": True})
+            self.assertEqual(result.context.status, "completed")
+            self.assertTrue(result.trace_path.exists())
+            self.assertTrue(result.checkpoint_path.exists())
+
+    def test_local_adapter_feedback_is_reversible_candidate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)
+            adapter.record_feedback("correction", "project", "tone", "use concise language", 0.9)
+            report = adapter.report()
+            self.assertEqual(report["feedback_candidates"][0]["subject"], "tone")
+            self.assertEqual(report["feedback_candidates"][0]["status"], "candidate")
 
 
 if __name__ == "__main__":

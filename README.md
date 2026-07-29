@@ -20,6 +20,10 @@ python scripts/agent-manager.py route --task "summarize a report" --top-k 3
 python scripts/agent-manager.py graph validate --file config/example-graph.json
 python scripts/agent-manager.py graph run --file config/example-graph.json
 python scripts/agent-manager.py trace show --file .agent-manager/traces/<run-id>.json
+python scripts/agent-manager.py adapter prepare --task "summarize a report"
+python scripts/agent-manager.py adapter run --task "summarize a report"
+python scripts/agent-manager.py adapter feedback --event-type correction --scope project --subject tone --note "use concise language" --confidence 0.9
+python scripts/agent-manager.py adapter report
 python scripts/agent-manager.py audit
 python -m unittest discover -s tests -v
 ```
@@ -56,6 +60,10 @@ The scheduler executes validated graphs with deterministic handlers or applicati
 - JSON traces for replay and diagnosis.
 
 The public example graph uses built-in handlers so it can run without a model provider. Applications can pass a handler mapping to `GraphScheduler` for real node behavior.
+
+## Local Agent Adapter
+
+`LocalAgentAdapter` is the local entry point for gradual adoption. It routes a task, executes the example graph, persists checkpoints and traces under ignored `.agent-manager/`, and stores feedback as reversible candidates. It does not call a model or provider by itself; a host agent can use its plan and execution result to invoke the appropriate provider adapter.
 
 ## Public boundary
 
