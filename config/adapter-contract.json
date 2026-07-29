@@ -15,6 +15,10 @@
       "input": {"entity_file": "JSON object, entity array, or object with entities[]"},
       "output": {"proposals": "ExecutionProposal[]", "counts": "script|skill|human_review", "human_gate_required": "boolean"}
     },
+    "execute": {
+      "input": {"entity_file": "JSON object, entity array, or object with entities[]", "checkpoint": "optional path", "max_items": "optional integer"},
+      "output": {"status": "completed|paused", "status_counts": "completed|pending|failed", "kind_counts": "script|skill|human_review", "checkpoint": "path"}
+    },
     "feedback": {
       "input": {"event_type": "undo|redo|pitfall|fallback|correction|approval", "scope": "profile|project", "subject": "string", "note": "string", "confidence": "0..1"},
       "output": {"status": "candidate", "storage": "ignored runtime state"}

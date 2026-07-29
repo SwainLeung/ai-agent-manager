@@ -7,6 +7,7 @@
 - Documented the distinction between recoverable pauses and terminal failures.
 - Added entity-level `DecisionMatrix` and `ExecutionProposal` for Script/Skill/human-review routing.
 - Added `adapter decide` CLI flow and contract coverage without automatic rule promotion.
+- Added `ProposalExecutor` and `adapter execute` for gated Script execution with pending Skill/human-review records and resumable checkpoints.
 
 ## [0.2.4] - 2026-07-29
 

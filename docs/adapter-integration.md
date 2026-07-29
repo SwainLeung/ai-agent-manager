@@ -12,6 +12,7 @@ The adapter owns governance and execution plumbing:
 4. store explicit user feedback as reversible candidates;
 5. report lifecycle and anti-entropy signals.
 6. decide whether a structured entity operation belongs to a deterministic Script, an interpretive Skill, or a human gate.
+7. execute only approved deterministic Script proposals and persist their results.
 
 ## 2. What the host Agent owns
 
@@ -83,6 +84,17 @@ python scripts/agent-manager.py adapter decide --entity-file entities.json
 
 This is a proposal layer. It does not execute the operation, mutate the
 registry, or promote a Skill into a Script without a separately reviewed rule.
+
+`adapter execute` is the next controlled step. It runs only deterministic
+Script handlers, leaves Skill and human-review proposals pending, and persists
+an execution checkpoint so large entity batches can resume safely:
+
+```powershell
+python scripts/agent-manager.py adapter execute `
+  --entity-file entities.json `
+  --checkpoint .agent-manager/checkpoints/entities.json `
+  --summary-only
+```
 
 ### Recoverable pauses
 

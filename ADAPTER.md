@@ -59,6 +59,7 @@ For structured entities, use the decision matrix before execution:
 
 ```powershell
 python scripts/agent-manager.py adapter decide --entity-file entities.json
+python scripts/agent-manager.py adapter execute --entity-file entities.json --summary-only
 ```
 
 The matrix treats hashing, validation, link extraction, duplicate keys, and
@@ -66,3 +67,11 @@ other schema-known repeatable operations as Script candidates. Ontology
 interpretation and relation discovery remain Skill candidates. Merge and
 writeback operations require `human_review`; the matrix never promotes a
 candidate directly into a registry rule.
+
+Execution is intentionally gated:
+
+- Script proposals run through deterministic handlers and write result records;
+- Skill proposals remain `pending` for the host Agent;
+- human-review proposals remain `pending` for approval;
+- execution checkpoints can pause and resume by proposal index;
+- no execution result automatically changes the registry.

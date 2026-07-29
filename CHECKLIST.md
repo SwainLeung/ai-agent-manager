@@ -39,6 +39,7 @@
 - 2026-07-29: public `main` is synchronized; runtime state remains ignored.
 - 2026-07-29: checkpoint test found that max-step interruption was terminal and lost `next_node`; scheduler now writes resumable `paused` checkpoints and regression coverage passes.
 - 2026-07-29: added entity-level DecisionMatrix; deterministic schema-known operations propose Scripts, semantic operations propose Skills, and sensitive/merge/writeback operations require human review.
+- 2026-07-29: added ProposalExecutor; Script proposals execute deterministically, Skill and human-review proposals remain pending, and large batches resume from checkpoints.
 
 ## Gradual local-agent adoption
 
@@ -66,3 +67,5 @@
 - [ ] Run a low-risk Codex task through the adapter and review its trace.
 - [x] Add entity-level Skills-vs-Scripts decision proposals with human gates.
 - [ ] Connect private FlowUs entity batches to `adapter decide` and review promotion candidates.
+- [x] Execute a shadow batch through ProposalExecutor without registry mutation.
+- [ ] Add reviewed promotion ledger for repeated Script success.

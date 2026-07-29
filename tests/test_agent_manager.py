@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.decision import DecisionMatrix
+from agent_manager.executor import ProposalExecutor
 from agent_manager.entropy import audit
 from agent_manager.execution import GraphScheduler, NodeResult, RetryPolicy
 from agent_manager.feedback import FeedbackStore
@@ -88,6 +89,40 @@ class AgentManagerTests(unittest.TestCase):
         self.assertEqual(result["entity_count"], 1)
         self.assertEqual(result["proposal_count"], 8)
         self.assertEqual(result["counts"], {"script": 4, "skill": 2, "human_review": 2})
+
+    def test_proposal_executor_runs_scripts_and_leaves_gates_pending(self):
+        entities = [
+            {"entity_id": "script-1", "operation": "duplicate_key", "title": "Hello World", "confidence": 0.99},
+            {"entity_id": "skill-1", "operation": "ontology_classify", "confidence": 0.99},
+            {"entity_id": "review-1", "operation": "candidate_writeback", "confidence": 0.99},
+        ]
+        result = ProposalExecutor().execute_entities(entities)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["status_counts"], {"completed": 1, "pending": 2, "failed": 0})
+        self.assertEqual(result["records"][0]["output"]["duplicate_key"], "helloworld")
+
+    def test_proposal_executor_pauses_and_resumes_checkpoint(self):
+        entities = [
+            {"entity_id": "one", "operation": "duplicate_key", "title": "One", "confidence": 0.99},
+            {"entity_id": "two", "operation": "duplicate_key", "title": "Two", "confidence": 0.99},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "proposal-checkpoint.json"
+            first = ProposalExecutor().execute_entities(entities, checkpoint=checkpoint, max_items=1)
+            self.assertEqual(first["status"], "paused")
+            self.assertEqual(first["processed"], 1)
+            resumed = ProposalExecutor().execute_entities(entities, checkpoint=checkpoint)
+            self.assertEqual(resumed["status"], "completed")
+            self.assertEqual(resumed["processed"], 2)
+
+    def test_adapter_executes_entity_batch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)
+            result = adapter.execute_entities([
+                {"entity_id": "one", "operation": "snapshot_hash", "content": "abc", "confidence": 1.0},
+            ])
+            self.assertEqual(result["status"], "completed")
+            self.assertEqual(result["status_counts"]["completed"], 1)
     def test_registry_rejects_duplicate_ids(self):
         with self.assertRaises(RegistryError):
             SkillRegistry([skill(), skill()])
