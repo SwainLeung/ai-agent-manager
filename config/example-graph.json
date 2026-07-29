@@ -1,0 +1,20 @@
+{
+  "id": "report-flow",
+  "version": "1.0.0",
+  "start": "route",
+  "nodes": [
+    {"id": "route", "kind": "decision", "label": "Route task"},
+    {"id": "collect", "kind": "script", "label": "Collect structured inputs"},
+    {"id": "synthesize", "kind": "skill", "label": "Synthesize report"},
+    {"id": "fallback", "kind": "skill", "label": "Ask for clarification"},
+    {"id": "finish", "kind": "checkpoint", "label": "Validate output"}
+  ],
+  "edges": [
+    {"from": "route", "to": "collect", "when": "structured"},
+    {"from": "route", "to": "synthesize", "when": "ambiguous"},
+    {"from": "collect", "to": "finish", "when": "success"},
+    {"from": "synthesize", "to": "finish", "when": "success"},
+    {"from": "collect", "to": "fallback", "when": "error"},
+    {"from": "synthesize", "to": "fallback", "when": "error"}
+  ]
+}

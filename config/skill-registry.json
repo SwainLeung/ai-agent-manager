@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "id": "system.context-budget",
+      "layer": "system",
+      "kind": "script",
+      "frequency": "hot",
+      "version": "1.0.0",
+      "status": "stable",
+      "triggers": ["context", "token", "memory", "compress"],
+      "description": "Control active context and memory budgets.",
+      "calls": 120,
+      "successes": 116,
+      "last_used": "2026-07-29"
+    },
+    {
+      "id": "system.task-routing",
+      "layer": "system",
+      "kind": "script",
+      "frequency": "hot",
+      "version": "1.0.0",
+      "status": "stable",
+      "triggers": ["route", "choose", "dispatch", "skill"],
+      "description": "Route a task to the smallest useful capability set.",
+      "calls": 80,
+      "successes": 78,
+      "last_used": "2026-07-29"
+    },
+    {
+      "id": "domain.report-synthesis",
+      "layer": "domain",
+      "kind": "skill",
+      "frequency": "warm",
+      "version": "0.3.0",
+      "status": "candidate",
+      "triggers": ["report", "summarize", "insight", "recommendation"],
+      "description": "Interpret source material and produce a structured report.",
+      "calls": 18,
+      "successes": 15,
+      "last_used": "2026-07-28"
+    },
+    {
+      "id": "project.example-workflow",
+      "layer": "project",
+      "kind": "skill",
+      "frequency": "cold",
+      "version": "0.1.0",
+      "status": "experimental",
+      "triggers": ["example", "workflow", "prototype"],
+      "description": "Example project-specific workflow for testing lifecycle behavior.",
+      "calls": 2,
+      "successes": 1,
+      "last_used": "2026-07-20"
+    }
+  ]
+}

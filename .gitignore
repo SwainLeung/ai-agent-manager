@@ -1,0 +1,26 @@
+theory txt/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+build/
+dist/
+.agent-manager/
+telemetry/
+logs/
+*.jsonl
+credentials/
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*token*
+*secret*
+*password*
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
