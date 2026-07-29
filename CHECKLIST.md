@@ -41,6 +41,7 @@
 - 2026-07-29: added entity-level DecisionMatrix; deterministic schema-known operations propose Scripts, semantic operations propose Skills, and sensitive/merge/writeback operations require human review.
 - 2026-07-29: added ProposalExecutor; Script proposals execute deterministically, Skill and human-review proposals remain pending, and large batches resume from checkpoints.
 - 2026-07-29: added promotion ledger; repeated Script success produces a reversible candidate, and human approval does not mutate the registry.
+- 2026-07-29: added RegistryApplier; approved candidates produce dry-run patches by default, and explicit writes remain candidate-status registry changes.
 
 ## Gradual local-agent adoption
 
@@ -72,3 +73,4 @@
 - [ ] Add reviewed promotion ledger for repeated Script success.
 - [x] Add reviewed promotion ledger for repeated Script success.
 - [ ] Add separate versioned registry-apply workflow after promotion review.
+- [x] Add separate versioned registry-apply workflow after promotion review.

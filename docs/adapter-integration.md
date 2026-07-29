@@ -109,6 +109,18 @@ The candidate is stored in `promotion-ledger.json`. A human may review it, but
 approval does not alter `skill-registry.json`; registry promotion requires a
 separate reviewed commit.
 
+To inspect the exact registry patch without changing the registry:
+
+```powershell
+python scripts/agent-manager.py adapter promote apply `
+  --operation duplicate_key `
+  --plan-file .agent-manager/promotion-plan.json
+```
+
+Only an explicit `--write` applies the approved descriptor. The applier checks
+approval status, duplicate IDs, and writes the new descriptor as a `candidate`
+Script. It never auto-promotes to `stable`.
+
 ### Recoverable pauses
 
 When `max_steps` is reached, the scheduler returns `status: "paused"`, keeps

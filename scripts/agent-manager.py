@@ -201,6 +201,15 @@ def cmd_adapter_promote_review(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_adapter_promote_apply(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).apply_promotion(args.operation, registry_path=args.registry_file, write=args.write)
+    if args.plan_file:
+        args.plan_file.parent.mkdir(parents=True, exist_ok=True)
+        args.plan_file.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_adapter_feedback(args: argparse.Namespace) -> int:
     event = adapter_from_args(args).record_feedback(
         args.event_type,
@@ -331,6 +340,13 @@ def build_parser() -> argparse.ArgumentParser:
     review_promotion.add_argument("--note", required=True)
     review_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     review_promotion.set_defaults(func=cmd_adapter_promote_review)
+    apply_promotion = promote_sub.add_parser("apply")
+    apply_promotion.add_argument("--operation", required=True)
+    apply_promotion.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    apply_promotion.add_argument("--plan-file", type=Path)
+    apply_promotion.add_argument("--write", action="store_true")
+    apply_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    apply_promotion.set_defaults(func=cmd_adapter_promote_apply)
 
     feedback = adapter_sub.add_parser("feedback")
     feedback.add_argument("--event-type", required=True, choices=["undo", "redo", "pitfall", "fallback", "correction", "approval"])

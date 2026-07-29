@@ -10,6 +10,7 @@ from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.decision import DecisionMatrix
 from agent_manager.executor import ProposalExecutor
 from agent_manager.promotion import PromotionLedger
+from agent_manager.registry_apply import RegistryApplyError, RegistryApplier
 from agent_manager.entropy import audit
 from agent_manager.execution import GraphScheduler, NodeResult, RetryPolicy
 from agent_manager.feedback import FeedbackStore
@@ -154,6 +155,45 @@ class AgentManagerTests(unittest.TestCase):
             loaded.save(path)
             self.assertEqual(reviewed.status, "approved")
             self.assertEqual(PromotionLedger.load(path).report()[0]["status"], "approved")
+
+    def test_registry_applier_plans_and_applies_only_approved_candidate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            registry = root / "registry.json"
+            ledger_path = root / "promotion.json"
+            registry.write_text(json.dumps({"schema_version": 1, "skills": []}), encoding="utf-8")
+            ledger = PromotionLedger()
+            ledger.propose([
+                {"subject_id": "one", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+                {"subject_id": "two", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+                {"subject_id": "three", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+            ])
+            ledger.review("duplicate_key", "approve", "reviewed")
+            ledger.save(ledger_path)
+            applier = RegistryApplier(registry, ledger_path)
+            plan = applier.apply("duplicate_key")
+            self.assertEqual(plan.status, "planned")
+            self.assertFalse(plan.registry_mutated)
+            applied = applier.apply("duplicate_key", write=True)
+            self.assertEqual(applied.status, "applied")
+            payload = json.loads(registry.read_text(encoding="utf-8"))
+            self.assertEqual(payload["skills"][0]["id"], "script.duplicate-key")
+
+    def test_registry_applier_rejects_unapproved_candidate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            registry = root / "registry.json"
+            ledger_path = root / "promotion.json"
+            registry.write_text(json.dumps({"schema_version": 1, "skills": []}), encoding="utf-8")
+            ledger = PromotionLedger()
+            ledger.propose([
+                {"subject_id": "one", "operation": "link_extract", "kind": "script", "status": "completed"},
+                {"subject_id": "two", "operation": "link_extract", "kind": "script", "status": "completed"},
+                {"subject_id": "three", "operation": "link_extract", "kind": "script", "status": "completed"},
+            ])
+            ledger.save(ledger_path)
+            with self.assertRaises(RegistryApplyError):
+                RegistryApplier(registry, ledger_path).apply("link_extract")
     def test_registry_rejects_duplicate_ids(self):
         with self.assertRaises(RegistryError):
             SkillRegistry([skill(), skill()])

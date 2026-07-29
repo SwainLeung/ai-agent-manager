@@ -61,6 +61,7 @@ For structured entities, use the decision matrix before execution:
 python scripts/agent-manager.py adapter decide --entity-file entities.json
 python scripts/agent-manager.py adapter execute --entity-file entities.json --summary-only
 python scripts/agent-manager.py adapter promote propose --checkpoint .agent-manager/checkpoints/entities.json
+python scripts/agent-manager.py adapter promote apply --operation duplicate_key --plan-file .agent-manager/promotion-plan.json
 ```
 
 The matrix treats hashing, validation, link extraction, duplicate keys, and
@@ -88,3 +89,8 @@ python scripts/agent-manager.py adapter promote review `
 
 Approval records evidence and review status only. Applying a promotion to the
 registry remains a separate versioned change.
+
+`promote apply` defaults to dry-run. It requires an approved candidate and
+rejects unapproved candidates or registry ID conflicts. Add `--write` only in
+an explicitly reviewed change workflow; the generated descriptor starts as a
+`candidate` registry entry rather than silently becoming stable.

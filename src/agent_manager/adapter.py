@@ -9,6 +9,7 @@ from .entropy import audit
 from .decision import DecisionMatrix
 from .executor import ProposalExecutor
 from .promotion import PromotionLedger
+from .registry_apply import RegistryApplier
 from .execution import ExecutionContext, GraphScheduler, RetryPolicy
 from .feedback import FeedbackStore
 from .graph import GraphDefinition
@@ -126,6 +127,11 @@ class LocalAgentAdapter:
         candidate = ledger.review(operation, decision, note)
         ledger.save(self.promotion_path)
         return {"candidate": candidate.to_dict(), "ledger": str(self.promotion_path), "registry_mutated": False}
+
+    def apply_promotion(self, operation: str, *, registry_path: str | Path | None = None, write: bool = False) -> dict[str, Any]:
+        target = Path(registry_path) if registry_path else self.registry_path
+        patch = RegistryApplier(target, self.promotion_path).apply(operation, write=write)
+        return patch.to_dict()
 
     def run(
         self,

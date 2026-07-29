@@ -9,6 +9,7 @@
 - Added `adapter decide` CLI flow and contract coverage without automatic rule promotion.
 - Added `ProposalExecutor` and `adapter execute` for gated Script execution with pending Skill/human-review records and resumable checkpoints.
 - Added persistent Script promotion ledger with evidence thresholds and explicit approve/reject review; registry mutation remains separate.
+- Added dry-run/explicit-write RegistryApplier with approval checks, ID conflict detection, and candidate-only descriptors.
 
 ## [0.2.4] - 2026-07-29
 

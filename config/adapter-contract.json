@@ -23,6 +23,7 @@
       "input": {"checkpoint": "execution checkpoint", "min_successes": "integer >= 1", "min_success_rate": "0..1"},
       "output": {"candidates": "PromotionCandidate[]", "registry_mutated": "false"},
       "review": {"decision": "approve|reject", "note": "string", "registry_mutated": "false"}
+      ,"apply": {"operation": "approved operation", "registry_file": "path", "write": "boolean", "output": "RegistryPatch", "default_write": false}
     },
     "feedback": {
       "input": {"event_type": "undo|redo|pitfall|fallback|correction|approval", "scope": "profile|project", "subject": "string", "note": "string", "confidence": "0..1"},
