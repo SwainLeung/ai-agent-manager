@@ -156,6 +156,41 @@ class AgentManagerTests(unittest.TestCase):
             self.assertEqual(reviewed.status, "approved")
             self.assertEqual(PromotionLedger.load(path).report()[0]["status"], "approved")
 
+    def test_promotion_ledger_deduplicates_evidence_across_runs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "promotion.json"
+            ledger = PromotionLedger()
+            first = [
+                {"subject_id": "one", "operation": "snapshot_hash", "kind": "script", "status": "completed"},
+                {"subject_id": "two", "operation": "snapshot_hash", "kind": "script", "status": "completed"},
+                {"subject_id": "two", "operation": "snapshot_hash", "kind": "script", "status": "completed"},
+            ]
+            ledger.propose(first, min_successes=2)
+            ledger.save(path)
+
+            loaded = PromotionLedger.load(path)
+            candidates = loaded.propose(first + [
+                {"subject_id": "three", "operation": "snapshot_hash", "kind": "script", "status": "completed"},
+            ], min_successes=2)
+            self.assertEqual(candidates[0].evidence_count, 3)
+            self.assertEqual(candidates[0].success_count, 3)
+            self.assertEqual(len(loaded.evidence["snapshot_hash"]), 3)
+
+    def test_promotion_ledger_tracks_latest_status_per_evidence_key(self):
+        ledger = PromotionLedger()
+        ledger.propose([
+            {"subject_id": "one", "operation": "link_extract", "kind": "script", "status": "completed"},
+            {"subject_id": "two", "operation": "link_extract", "kind": "script", "status": "completed"},
+            {"subject_id": "three", "operation": "link_extract", "kind": "script", "status": "completed"},
+        ])
+        ledger.propose([
+            {"subject_id": "two", "operation": "link_extract", "kind": "script", "status": "failed"},
+        ], min_successes=2, min_success_rate=0.6)
+        candidate = ledger.candidates["link_extract"]
+        self.assertEqual(candidate.success_count, 2)
+        self.assertEqual(candidate.failure_count, 1)
+        self.assertEqual(candidate.success_rate, 0.667)
+
     def test_registry_applier_plans_and_applies_only_approved_candidate(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

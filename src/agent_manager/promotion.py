@@ -25,8 +25,16 @@ class PromotionCandidate:
 class PromotionLedger:
     """Persist reversible Script promotion candidates without mutating registry."""
 
-    def __init__(self, candidates: Iterable[PromotionCandidate] | None = None):
+    def __init__(
+        self,
+        candidates: Iterable[PromotionCandidate] | None = None,
+        evidence: Mapping[str, Mapping[str, str]] | None = None,
+    ):
         self.candidates = {candidate.operation: candidate for candidate in candidates or ()}
+        self.evidence = {
+            str(operation): {str(key): str(status) for key, status in values.items()}
+            for operation, values in (evidence or {}).items()
+        }
 
     @classmethod
     def load(cls, path: str | Path) -> "PromotionLedger":
@@ -34,12 +42,19 @@ class PromotionLedger:
         if not source.exists():
             return cls()
         payload = json.loads(source.read_text(encoding="utf-8"))
-        return cls(PromotionCandidate(**item) for item in payload.get("candidates", []))
+        return cls(
+            (PromotionCandidate(**item) for item in payload.get("candidates", [])),
+            payload.get("evidence", {}),
+        )
 
     def save(self, path: str | Path) -> None:
         destination = Path(path)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(json.dumps({"schema_version": 1, "candidates": [item.to_dict() for item in self.candidates.values()]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        destination.write_text(json.dumps({
+            "schema_version": 2,
+            "candidates": [item.to_dict() for item in self.candidates.values()],
+            "evidence": self.evidence,
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     def propose(
         self,
@@ -52,22 +67,25 @@ class PromotionLedger:
             raise ValueError("min_successes must be at least 1")
         if not 0 <= min_success_rate <= 1:
             raise ValueError("min_success_rate must be between 0 and 1")
-        grouped: dict[str, dict[str, set[str]]] = {}
-        for record in records:
+        touched: set[str] = set()
+        for index, record in enumerate(records):
             if record.get("kind") != "script":
                 continue
             operation = str(record.get("operation", ""))
-            subject = str(record.get("subject_id", "unknown"))
             status = str(record.get("status", ""))
-            if not operation:
+            if not operation or status not in {"completed", "failed"}:
                 continue
-            bucket = grouped.setdefault(operation, {"completed": set(), "failed": set()})
-            if status in bucket:
-                bucket[status].add(subject)
+            subject = str(record.get("subject_id", "unknown"))
+            explicit_key = record.get("evidence_key")
+            source_run = record.get("source_run_id")
+            evidence_key = str(explicit_key or (f"{source_run}:{subject}" if source_run else subject or f"record-{index}"))
+            self.evidence.setdefault(operation, {})[evidence_key] = status
+            touched.add(operation)
         proposed: list[PromotionCandidate] = []
-        for operation, bucket in sorted(grouped.items()):
-            success_count = len(bucket["completed"])
-            failure_count = len(bucket["failed"])
+        for operation in sorted(touched):
+            bucket = self.evidence[operation]
+            success_count = sum(status == "completed" for status in bucket.values())
+            failure_count = sum(status == "failed" for status in bucket.values())
             evidence_count = success_count + failure_count
             success_rate = success_count / evidence_count if evidence_count else 0.0
             if success_count < min_successes or success_rate < min_success_rate:
