@@ -16,8 +16,8 @@
       "output": {"proposals": "ExecutionProposal[]", "counts": "script|skill|human_review", "human_gate_required": "boolean"}
     },
     "execute": {
-      "input": {"entity_file": "JSON object, entity array, or object with entities[]", "checkpoint": "optional path", "max_items": "optional integer"},
-      "output": {"status": "completed|paused", "status_counts": "completed|pending|failed", "kind_counts": "script|skill|human_review", "checkpoint": "path"}
+      "input": {"entity_file": "JSON object, entity array, or manifest object with entities[] and optional entity_count", "checkpoint": "optional path", "max_items": "optional integer"},
+      "output": {"status": "completed|paused", "status_counts": "completed|pending|failed", "kind_counts": "script|skill|human_review", "entity_fingerprint": "SHA-256 of ordered input entities", "checkpoint": "path"}
     },
     "promote": {
       "input": {"checkpoint": "execution checkpoint", "min_successes": "integer >= 1", "min_success_rate": "0..1"},

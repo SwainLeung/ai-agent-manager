@@ -13,6 +13,7 @@
 - Added versioned registry apply manifests with before/after SHA-256 locks, explicit manifest approval, backup creation, drift checks, and rollback/undo.
 - Added CLI and contract coverage for the complete promotion transaction: plan, approve, dry-run, apply, and rollback.
 - Upgraded PromotionLedger to schema v2 with cross-run evidence persistence, stable-key deduplication, and latest-status success-rate tracking.
+- Added manifest-aware batch execution with declared-count validation and SHA-256 input fingerprints in resumable checkpoints.
 
 ## [0.2.4] - 2026-07-29
 

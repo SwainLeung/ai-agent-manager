@@ -65,6 +65,11 @@ def _idempotency_check(entity: Mapping[str, Any]) -> dict[str, Any]:
     return {"idempotency_key": f"{source_id}:{content_hash}", "stable": bool(source_id and content_hash)}
 
 
+def _entity_fingerprint(entities: list[Mapping[str, Any]]) -> str:
+    payload = json.dumps(entities, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 DEFAULT_SCRIPT_HANDLERS: dict[str, ScriptHandler] = {
     "snapshot_hash": _snapshot_hash,
     "frontmatter_validate": _frontmatter_validate,
@@ -103,15 +108,19 @@ class ProposalExecutor:
         checkpoint: str | Path | None = None,
         max_items: int | None = None,
     ) -> dict[str, Any]:
+        entity_fingerprint = _entity_fingerprint(entities)
         plan = self.matrix.decide_many(entities)
         proposals = [ExecutionProposal(**item) for item in plan["proposals"]]
         entity_by_id = {str(entity.get("entity_id") or entity.get("source_id")): entity for entity in entities}
         checkpoint_path = Path(checkpoint) if checkpoint else None
-        state = {"schema_version": 1, "status": "running", "next_index": 0, "records": []}
+        state = {"schema_version": 2, "status": "running", "next_index": 0, "records": [], "entity_fingerprint": entity_fingerprint}
         if checkpoint_path and checkpoint_path.exists():
             state = json.loads(checkpoint_path.read_text(encoding="utf-8"))
             if state.get("proposal_count") not in {None, len(proposals)}:
                 raise ValueError("checkpoint proposal count does not match current plan")
+            saved_fingerprint = state.get("entity_fingerprint")
+            if saved_fingerprint not in {None, entity_fingerprint}:
+                raise ValueError("checkpoint entity manifest does not match current input")
         records = [ExecutionRecord(**item) for item in state.get("records", [])]
         index = int(state.get("next_index", len(records)))
         limit = len(proposals) if max_items is None else min(len(proposals), index + max_items)
@@ -122,10 +131,10 @@ class ProposalExecutor:
             index += 1
             if checkpoint_path:
                 checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-                checkpoint_path.write_text(json.dumps({"schema_version": 1, "status": "running", "proposal_count": len(proposals), "next_index": index, "records": [item.to_dict() for item in records]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                checkpoint_path.write_text(json.dumps({"schema_version": 2, "status": "running", "proposal_count": len(proposals), "entity_fingerprint": entity_fingerprint, "next_index": index, "records": [item.to_dict() for item in records]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         status = "completed" if index >= len(proposals) else "paused"
         if checkpoint_path:
-            checkpoint_path.write_text(json.dumps({"schema_version": 1, "status": status, "proposal_count": len(proposals), "next_index": index, "records": [item.to_dict() for item in records]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            checkpoint_path.write_text(json.dumps({"schema_version": 2, "status": status, "proposal_count": len(proposals), "entity_fingerprint": entity_fingerprint, "next_index": index, "records": [item.to_dict() for item in records]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         status_counts = {status: sum(1 for item in records if item.status == status) for status in ("completed", "pending", "failed")}
         kind_counts = {kind: sum(1 for item in records if item.kind == kind) for kind in ("script", "skill", "human_review")}
         return {
@@ -136,6 +145,7 @@ class ProposalExecutor:
             "status_counts": status_counts,
             "kind_counts": kind_counts,
             "human_gate_required": kind_counts["human_review"] > 0,
+            "entity_fingerprint": entity_fingerprint,
             "checkpoint": str(checkpoint_path) if checkpoint_path else None,
             "records": [item.to_dict() for item in records],
         }

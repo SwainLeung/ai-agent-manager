@@ -7,6 +7,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -129,6 +130,24 @@ def adapter_signals(args: argparse.Namespace) -> RouteSignals:
     )
 
 
+def load_entity_file(path: Path) -> list[dict[str, Any]]:
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    if isinstance(payload, dict) and isinstance(payload.get("entities"), list):
+        entities = payload["entities"]
+        declared_count = payload.get("entity_count")
+        if declared_count is not None and int(declared_count) != len(entities):
+            raise ValueError("entity manifest entity_count does not match entities[]")
+    elif isinstance(payload, list):
+        entities = payload
+    elif isinstance(payload, dict):
+        entities = [payload]
+    else:
+        raise ValueError("entity file must contain an object or array")
+    if not all(isinstance(entity, dict) for entity in entities):
+        raise ValueError("entity file entities must be JSON objects")
+    return entities
+
+
 def cmd_adapter_prepare(args: argparse.Namespace) -> int:
     plan = adapter_from_args(args).prepare(args.task, adapter_signals(args), top_k=args.top_k)
     print(json.dumps(plan.to_dict(), ensure_ascii=False, indent=2))
@@ -153,15 +172,7 @@ def cmd_adapter_run(args: argparse.Namespace) -> int:
 
 
 def cmd_adapter_decide(args: argparse.Namespace) -> int:
-    payload = json.loads(args.entity_file.read_text(encoding="utf-8-sig"))
-    if isinstance(payload, dict) and isinstance(payload.get("entities"), list):
-        entities = payload["entities"]
-    elif isinstance(payload, list):
-        entities = payload
-    elif isinstance(payload, dict):
-        entities = [payload]
-    else:
-        raise ValueError("entity file must contain an object or array")
+    entities = load_entity_file(args.entity_file)
     result = adapter_from_args(args).decide_entities(entities)
     if args.summary_only:
         result = {key: value for key, value in result.items() if key != "proposals"}
@@ -171,15 +182,7 @@ def cmd_adapter_decide(args: argparse.Namespace) -> int:
 
 
 def cmd_adapter_execute(args: argparse.Namespace) -> int:
-    payload = json.loads(args.entity_file.read_text(encoding="utf-8-sig"))
-    if isinstance(payload, dict) and isinstance(payload.get("entities"), list):
-        entities = payload["entities"]
-    elif isinstance(payload, list):
-        entities = payload
-    elif isinstance(payload, dict):
-        entities = [payload]
-    else:
-        raise ValueError("entity file must contain an object or array")
+    entities = load_entity_file(args.entity_file)
     result = adapter_from_args(args).execute_entities(entities, checkpoint=args.checkpoint, max_items=args.max_items)
     if args.summary_only:
         result = {key: value for key, value in result.items() if key != "records"}

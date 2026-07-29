@@ -55,7 +55,9 @@ Do not commit credentials, private prompts, user data, production logs, traces, 
 
 Read the [adapter integration guide](docs/adapter-integration.md) and the machine-readable [adapter contract](config/adapter-contract.json) before writing another host adapter.
 
-For structured entities, use the decision matrix before execution:
+For structured entities, use the decision matrix before execution. A manifest
+may be either a plain entity array or an object containing `entities[]`; when
+`entity_count` is present, it must match the array length.
 
 ```powershell
 python scripts/agent-manager.py adapter decide --entity-file entities.json
@@ -79,6 +81,7 @@ Execution is intentionally gated:
 - Skill proposals remain `pending` for the host Agent;
 - human-review proposals remain `pending` for approval;
 - execution checkpoints can pause and resume by proposal index;
+- checkpoints bind to an input entity fingerprint and reject a different manifest;
 - no execution result automatically changes the registry.
 
 Promotion is a separate reversible ledger:

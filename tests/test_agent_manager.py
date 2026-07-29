@@ -117,6 +117,17 @@ class AgentManagerTests(unittest.TestCase):
             self.assertEqual(resumed["status"], "completed")
             self.assertEqual(resumed["processed"], 2)
 
+    def test_proposal_executor_rejects_checkpoint_for_different_manifest(self):
+        entities = [
+            {"entity_id": "one", "operation": "duplicate_key", "title": "One", "confidence": 0.99},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "proposal-checkpoint.json"
+            ProposalExecutor().execute_entities(entities, checkpoint=checkpoint, max_items=1)
+            changed = [{**entities[0], "title": "Changed"}]
+            with self.assertRaises(ValueError):
+                ProposalExecutor().execute_entities(changed, checkpoint=checkpoint)
+
     def test_adapter_executes_entity_batch(self):
         with tempfile.TemporaryDirectory() as directory:
             adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)

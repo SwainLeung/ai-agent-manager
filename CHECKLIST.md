@@ -45,6 +45,8 @@
 - 2026-07-29: added registry apply manifests; plan/approve locks before-and-after hashes, explicit apply saves a backup, and rollback restores only when no external drift is detected.
 - 2026-07-29: CLI end-to-end test passed for manifest plan, approval, dry-run, apply, and rollback on an isolated temporary registry.
 - 2026-07-29: PromotionLedger schema v2 deduplicates repeated evidence by stable key and preserves cumulative candidate statistics across reloads.
+- 2026-07-29: adapter entity manifests validate declared counts and reject checkpoint resume against a changed input fingerprint.
+- 2026-07-29: real local FlowUs v3 manifest smoke test covered 8,169 entities, 62,070 proposals, and two resumable 100-proposal chunks without writeback.
 
 ## Gradual local-agent adoption
 
