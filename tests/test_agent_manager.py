@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from agent_manager.adapter import LocalAgentAdapter
+from agent_manager.decision import DecisionMatrix
 from agent_manager.entropy import audit
 from agent_manager.execution import GraphScheduler, NodeResult, RetryPolicy
 from agent_manager.feedback import FeedbackStore
@@ -35,6 +36,58 @@ def skill(**overrides):
 
 
 class AgentManagerTests(unittest.TestCase):
+    def test_decision_matrix_chooses_script_for_deterministic_entity_operation(self):
+        proposal = DecisionMatrix().decide({
+            "entity_id": "flowus-1",
+            "operation": "duplicate_key",
+            "confidence": 0.98,
+        })
+        self.assertEqual(proposal.kind, "script")
+        self.assertEqual(proposal.gate, "automatic")
+
+    def test_decision_matrix_chooses_skill_for_ambiguous_ontology_operation(self):
+        proposal = DecisionMatrix().decide({
+            "entity_id": "flowus-2",
+            "operation": "ontology_classify",
+            "confidence": 0.92,
+            "schema_known": True,
+        })
+        self.assertEqual(proposal.kind, "skill")
+        self.assertEqual(proposal.gate, "host-agent")
+
+    def test_decision_matrix_forces_human_gate_for_sensitive_writeback(self):
+        proposal = DecisionMatrix().decide({
+            "entity_id": "flowus-3",
+            "operation": "candidate_writeback",
+            "confidence": 0.99,
+            "safety_status": "blocked",
+        })
+        self.assertEqual(proposal.kind, "human_review")
+        self.assertEqual(proposal.gate, "human")
+
+    def test_adapter_decides_entity_batch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)
+            result = adapter.decide_entities([
+                {"entity_id": "one", "operation": "snapshot_hash", "confidence": 1.0},
+                {"entity_id": "two", "operation": "relation_discovery", "confidence": 0.9},
+                {"entity_id": "three", "operation": "candidate_writeback", "confidence": 0.95},
+            ])
+            self.assertEqual(result["counts"], {"script": 1, "skill": 1, "human_review": 1})
+            self.assertTrue(result["human_gate_required"])
+
+    def test_decision_matrix_infers_entity_pipeline(self):
+        result = DecisionMatrix().decide_many([{
+            "entity_id": "flowus-pipeline",
+            "confidence": 0.95,
+            "source_url": "https://flowus.cn/example",
+            "content_hash": "ABC",
+            "linked_source_ids": ["source-2"],
+            "duplicate_key": "same-title",
+        }])
+        self.assertEqual(result["entity_count"], 1)
+        self.assertEqual(result["proposal_count"], 8)
+        self.assertEqual(result["counts"], {"script": 4, "skill": 2, "human_review": 2})
     def test_registry_rejects_duplicate_ids(self):
         with self.assertRaises(RegistryError):
             SkillRegistry([skill(), skill()])

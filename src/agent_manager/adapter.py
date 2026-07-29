@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .entropy import audit
+from .decision import DecisionMatrix
 from .execution import ExecutionContext, GraphScheduler, RetryPolicy
 from .feedback import FeedbackStore
 from .graph import GraphDefinition
@@ -59,6 +60,7 @@ class LocalAgentAdapter:
         self.state_dir = Path(state_dir)
         self.registry = SkillRegistry.load(self.registry_path)
         self.router = Router(self.registry)
+        self.decision_matrix = DecisionMatrix()
 
     @classmethod
     def for_project(cls, root: str | Path, *, state_dir: str | Path = ".agent-manager") -> "LocalAgentAdapter":
@@ -84,6 +86,12 @@ class LocalAgentAdapter:
         top_k: int = 3,
     ) -> AdapterPlan:
         return AdapterPlan(task, self.router.decide(task, signals, top_k))
+
+    def decide_entity(self, entity: Mapping[str, Any]) -> dict[str, Any]:
+        return self.decision_matrix.decide(entity).to_dict()
+
+    def decide_entities(self, entities: list[Mapping[str, Any]]) -> dict[str, Any]:
+        return self.decision_matrix.decide_many(entities)
 
     def run(
         self,

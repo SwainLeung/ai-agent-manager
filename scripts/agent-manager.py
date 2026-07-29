@@ -152,6 +152,24 @@ def cmd_adapter_run(args: argparse.Namespace) -> int:
     return 0 if result.context.status == "completed" else 1
 
 
+def cmd_adapter_decide(args: argparse.Namespace) -> int:
+    payload = json.loads(args.entity_file.read_text(encoding="utf-8-sig"))
+    if isinstance(payload, dict) and isinstance(payload.get("entities"), list):
+        entities = payload["entities"]
+    elif isinstance(payload, list):
+        entities = payload
+    elif isinstance(payload, dict):
+        entities = [payload]
+    else:
+        raise ValueError("entity file must contain an object or array")
+    result = adapter_from_args(args).decide_entities(entities)
+    if args.summary_only:
+        result = {key: value for key, value in result.items() if key != "proposals"}
+        result["sample_proposals"] = adapter_from_args(args).decide_entities(entities[:3])["proposals"][:10]
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_adapter_feedback(args: argparse.Namespace) -> int:
     event = adapter_from_args(args).record_feedback(
         args.event_type,
@@ -253,6 +271,12 @@ def build_parser() -> argparse.ArgumentParser:
     for option in ("structured", "deterministic", "low_latency", "creative"):
         adapter_run.add_argument(f"--{option.replace('_', '-')}", action="store_true", dest=option)
     adapter_run.set_defaults(func=cmd_adapter_run)
+
+    decide = adapter_sub.add_parser("decide")
+    decide.add_argument("--entity-file", required=True, type=Path)
+    decide.add_argument("--summary-only", action="store_true")
+    decide.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    decide.set_defaults(func=cmd_adapter_decide)
 
     feedback = adapter_sub.add_parser("feedback")
     feedback.add_argument("--event-type", required=True, choices=["undo", "redo", "pitfall", "fallback", "correction", "approval"])

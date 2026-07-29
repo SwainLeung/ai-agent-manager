@@ -9,6 +9,7 @@ prepare(task)   -> route candidates
 run(task)       -> graph execution + checkpoint + trace
 feedback(...)   -> reversible improvement candidate
 report()        -> feedback + lifecycle + entropy signals
+decide(...)     -> entity operation proposal: script / skill / human_review
 ```
 
 The adapter does not call a model, own provider credentials, or silently change project rules. The host Agent remains responsible for interpretation, model calls, tools, approvals, and final user communication.
@@ -53,3 +54,15 @@ from a terminal failure before choosing retry, fallback, or restart.
 Do not commit credentials, private prompts, user data, production logs, traces, checkpoints, or feedback state.
 
 Read the [adapter integration guide](docs/adapter-integration.md) and the machine-readable [adapter contract](config/adapter-contract.json) before writing another host adapter.
+
+For structured entities, use the decision matrix before execution:
+
+```powershell
+python scripts/agent-manager.py adapter decide --entity-file entities.json
+```
+
+The matrix treats hashing, validation, link extraction, duplicate keys, and
+other schema-known repeatable operations as Script candidates. Ontology
+interpretation and relation discovery remain Skill candidates. Merge and
+writeback operations require `human_review`; the matrix never promotes a
+candidate directly into a registry rule.

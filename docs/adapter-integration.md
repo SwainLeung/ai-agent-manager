@@ -11,6 +11,7 @@ The adapter owns governance and execution plumbing:
 3. persist checkpoints and structured traces;
 4. store explicit user feedback as reversible candidates;
 5. report lifecycle and anti-entropy signals.
+6. decide whether a structured entity operation belongs to a deterministic Script, an interpretive Skill, or a human gate.
 
 ## 2. What the host Agent owns
 
@@ -30,6 +31,7 @@ Never put provider credentials or private user context in the public registry, g
 ```text
 request
   -> adapter.prepare(task, signals)
+  -> adapter.decide_entity(entity)
   -> host selects/loads provider capability
   -> adapter.run(task, inputs, graph, handlers)
   -> host reviews result and trace
@@ -63,6 +65,24 @@ if result.context.status != "completed":
 ```
 
 The public adapter uses built-in example handlers. A real host can pass a graph-specific handler mapping directly to `GraphScheduler` when it needs provider calls or domain behavior.
+
+### Entity-level Skills-vs-Scripts decision
+
+`DecisionMatrix` evaluates operation metadata, not private provider content. It
+returns an `ExecutionProposal` with a kind, confidence, reasons, and gate:
+
+- `script`: deterministic, repeatable, schema-known operations such as hashing, validation, link extraction, duplicate keys, and idempotency checks;
+- `skill`: ontology interpretation, relation discovery, and open-ended summarization;
+- `human_review`: sensitive content, low confidence, duplicate merges, schema approval, and writeback.
+
+Use the CLI for a JSON entity file:
+
+```powershell
+python scripts/agent-manager.py adapter decide --entity-file entities.json
+```
+
+This is a proposal layer. It does not execute the operation, mutate the
+registry, or promote a Skill into a Script without a separately reviewed rule.
 
 ### Recoverable pauses
 

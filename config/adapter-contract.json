@@ -11,6 +11,10 @@
       "input": {"task": "string", "inputs": "object", "graph": "optional path", "retry": "optional RetryPolicy"},
       "output": {"context": "ExecutionContext", "trace": "path", "checkpoint": "path"}
     },
+    "decide": {
+      "input": {"entity_file": "JSON object, entity array, or object with entities[]"},
+      "output": {"proposals": "ExecutionProposal[]", "counts": "script|skill|human_review", "human_gate_required": "boolean"}
+    },
     "feedback": {
       "input": {"event_type": "undo|redo|pitfall|fallback|correction|approval", "scope": "profile|project", "subject": "string", "note": "string", "confidence": "0..1"},
       "output": {"status": "candidate", "storage": "ignored runtime state"}

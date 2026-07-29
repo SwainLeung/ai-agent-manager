@@ -38,6 +38,7 @@
 - 2026-07-29: a persisted feedback reload/append pitfall was fixed; 16 unit tests now pass.
 - 2026-07-29: public `main` is synchronized; runtime state remains ignored.
 - 2026-07-29: checkpoint test found that max-step interruption was terminal and lost `next_node`; scheduler now writes resumable `paused` checkpoints and regression coverage passes.
+- 2026-07-29: added entity-level DecisionMatrix; deterministic schema-known operations propose Scripts, semantic operations propose Skills, and sensitive/merge/writeback operations require human review.
 
 ## Gradual local-agent adoption
 
@@ -63,3 +64,5 @@
 - [x] Capture and fix the persisted feedback reload pitfall.
 - [ ] Add automatic host-side feedback capture after user corrections.
 - [ ] Run a low-risk Codex task through the adapter and review its trace.
+- [x] Add entity-level Skills-vs-Scripts decision proposals with human gates.
+- [ ] Connect private FlowUs entity batches to `adapter decide` and review promotion candidates.

@@ -5,6 +5,8 @@
 - Changed max-step interruption from terminal `failed` to resumable `paused`.
 - Preserved `next_node` in paused checkpoints and added regression coverage for CLI/API resume.
 - Documented the distinction between recoverable pauses and terminal failures.
+- Added entity-level `DecisionMatrix` and `ExecutionProposal` for Script/Skill/human-review routing.
+- Added `adapter decide` CLI flow and contract coverage without automatic rule promotion.
 
 ## [0.2.4] - 2026-07-29
 
