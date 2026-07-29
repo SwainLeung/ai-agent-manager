@@ -52,6 +52,19 @@
       "calls": 2,
       "successes": 1,
       "last_used": "2026-07-20"
+    },
+    {
+      "id": "project.knowledge-ingestion-prep",
+      "layer": "project",
+      "kind": "skill",
+      "frequency": "cold",
+      "version": "0.1.0",
+      "status": "experimental",
+      "triggers": ["flowus", "ontology", "knowledge", "obsidian", "mapping", "sync"],
+      "description": "Prepare source-backed knowledge ingestion, ontology review, and reversible synchronization workflows.",
+      "calls": 0,
+      "successes": 0,
+      "last_used": "2026-07-29"
     }
   ]
 }

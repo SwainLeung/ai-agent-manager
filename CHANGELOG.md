@@ -4,6 +4,12 @@
 
 - Reserved for future changes after public review.
 
+## [0.2.4] - 2026-07-29
+
+- Added an experimental knowledge-ingestion preparation route for Flowus/ontology/Obsidian mapping tasks.
+- Fixed persisted `FeedbackStore` reloads so feedback remains appendable after restart.
+- Added regression coverage for route discovery and feedback round trips.
+
 ## [0.2.3] - 2026-07-29
 
 - Added `ADAPTER.md` and a detailed adapter integration guide for other Agents.

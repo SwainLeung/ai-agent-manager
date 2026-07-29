@@ -1,8 +1,8 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 生成日期：2026-07-29
-> 项目版本：0.2.3
-> 测试通过：14/14 单元测试通过，public-check 通过
+> 项目版本：0.2.4
+> 测试通过：16/16 单元测试通过，public-check 通过
 > Git 状态：所有文件未提交（初始仓库）
 
 ---
@@ -30,6 +30,13 @@
 - 新增根目录 `ADAPTER.md`、`docs/adapter-integration.md` 和 `config/adapter-contract.json`。
 - 新增 `examples/adapter-host.py`，提供其他 Agent 的最小接入样例。
 - 契约测试通过；当前公共接入面已具备文档、机器契约、Python API、CLI 和状态边界说明。
+
+### v0.2.4 Flowus 准备验证增量
+
+- 新增 `project.knowledge-ingestion-prep` 实验性路由，用于 Flowus/本体/知识映射准备任务。
+- 首次无路由命中被记录为 `pitfall` 候选，修复后同类任务命中五个触发词。
+- 修复 `FeedbackStore` 持久化重载后无法追加反馈的问题，并增加回归测试。
+- Flowus 对接仍处于准备阶段，未调用 API、未写入 Obsidian、未发布线上内容。
 
 ---
 

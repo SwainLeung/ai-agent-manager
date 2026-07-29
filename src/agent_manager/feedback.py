@@ -12,7 +12,7 @@ ALLOWED_EVENTS = {"undo", "redo", "pitfall", "fallback", "correction", "approval
 
 class FeedbackStore:
     def __init__(self, events: list[FeedbackEvent] | None = None):
-        self.events = events or []
+        self.events = list(events or [])
 
     def record(self, event: FeedbackEvent) -> None:
         if event.event_type not in ALLOWED_EVENTS:
@@ -51,4 +51,4 @@ class FeedbackStore:
         payload = json.loads(source.read_text(encoding="utf-8"))
         if not isinstance(payload, list):
             raise ValueError("feedback store must contain a list")
-        return cls(FeedbackEvent(**item) for item in payload)
+        return cls([FeedbackEvent(**item) for item in payload])

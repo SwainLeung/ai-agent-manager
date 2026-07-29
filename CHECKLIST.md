@@ -34,6 +34,8 @@
 - 2026-07-29: 11 unit tests passed after adding scheduler, retry, fallback, resume, and recorder coverage.
 - 2026-07-29: 13 unit tests passed after adding Local Agent Adapter integration coverage.
 - 2026-07-29: adapter `prepare`, `run`, `feedback`, and `report` CLI flows passed.
+- 2026-07-29: Flowus knowledge-ingestion task routes to the experimental preparation skill.
+- 2026-07-29: a persisted feedback reload/append pitfall was fixed; 16 unit tests now pass.
 - 2026-07-29: public `main` is synchronized; runtime state remains ignored.
 
 ## Gradual local-agent adoption
@@ -56,5 +58,7 @@
 - [x] Add quick-start `ADAPTER.md` for other Agents.
 - [x] Add detailed adapter integration guide and machine-readable contract.
 - [x] Add minimal host Agent example and contract test.
+- [x] Add an experimental knowledge-ingestion preparation route for Flowus-style tasks.
+- [x] Capture and fix the persisted feedback reload pitfall.
 - [ ] Add automatic host-side feedback capture after user corrections.
 - [ ] Run a low-risk Codex task through the adapter and review its trace.

@@ -61,6 +61,16 @@ class AgentManagerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             store.record(FeedbackEvent("unknown", "profile", "x", "bad", 0.9))
 
+    def test_feedback_store_round_trip_remains_appendable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "feedback.json"
+            store = FeedbackStore()
+            store.record(FeedbackEvent("pitfall", "project", "sync", "retry", 0.9))
+            store.save(path)
+            loaded = FeedbackStore.load(path)
+            loaded.record(FeedbackEvent("redo", "project", "sync", "repeat", 0.8))
+            self.assertEqual(len(loaded.events), 2)
+
     def test_graph_example_validates(self):
         path = Path(__file__).parents[1] / "config" / "example-graph.json"
         graph = GraphDefinition.load(path)
@@ -166,6 +176,11 @@ class AgentManagerTests(unittest.TestCase):
             self.assertEqual(result.context.status, "completed")
             self.assertTrue(result.trace_path.exists())
             self.assertTrue(result.checkpoint_path.exists())
+
+    def test_local_adapter_routes_knowledge_ingestion_prep(self):
+        adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1])
+        plan = adapter.prepare("Flowus ontology knowledge mapping sync")
+        self.assertEqual(plan.decisions[0].skill_id, "project.knowledge-ingestion-prep")
 
     def test_local_adapter_feedback_is_reversible_candidate(self):
         with tempfile.TemporaryDirectory() as directory:
