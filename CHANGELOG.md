@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-- Reserved for future changes after public review.
+- Changed max-step interruption from terminal `failed` to resumable `paused`.
+- Preserved `next_node` in paused checkpoints and added regression coverage for CLI/API resume.
+- Documented the distinction between recoverable pauses and terminal failures.
 
 ## [0.2.4] - 2026-07-29
 

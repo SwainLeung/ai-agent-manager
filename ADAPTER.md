@@ -45,6 +45,11 @@ Runtime files go under `.agent-manager/`, which is ignored by Git:
 - `feedback.json`: reversible feedback events;
 - reports generated from those signals.
 
+When `max_steps` is reached, the scheduler writes a `paused` checkpoint that
+retains `next_node` and can be resumed. Terminal `failed` and `completed`
+checkpoints are not resumable; hosts should distinguish a recoverable pause
+from a terminal failure before choosing retry, fallback, or restart.
+
 Do not commit credentials, private prompts, user data, production logs, traces, checkpoints, or feedback state.
 
 Read the [adapter integration guide](docs/adapter-integration.md) and the machine-readable [adapter contract](config/adapter-contract.json) before writing another host adapter.

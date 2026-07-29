@@ -57,11 +57,20 @@ result = adapter.run(
 )
 
 if result.context.status != "completed":
-    # The host decides whether to retry, ask the user, or escalate.
+    # A paused context retains next_node and may be resumed.
+    # A failed context is terminal and needs fallback or restart.
     print(result.context.error)
 ```
 
 The public adapter uses built-in example handlers. A real host can pass a graph-specific handler mapping directly to `GraphScheduler` when it needs provider calls or domain behavior.
+
+### Recoverable pauses
+
+When `max_steps` is reached, the scheduler returns `status: "paused"`, keeps
+the current `next_node`, and saves a resumable checkpoint. Hosts may pass that
+checkpoint back to `adapter.run(..., checkpoint=...)`. A `completed` or
+`failed` checkpoint is terminal and must not be resumed; choose an explicit
+fallback or a fresh run instead.
 
 ## 5. Feedback is not automatic policy
 

@@ -111,7 +111,7 @@ class GraphScheduler:
 
         while context.next_node is not None:
             if context.steps >= self.max_steps:
-                return self._finish(context, "failed", "maximum graph steps exceeded")
+                return self._finish(context, "paused", "maximum graph steps exceeded")
             node_id = context.next_node
             node = self._nodes[node_id]
             context.current_node = node_id
@@ -225,7 +225,8 @@ class GraphScheduler:
     def _finish(self, context: ExecutionContext, status: str, error: str | None) -> ExecutionContext:
         context.status = status
         context.error = error
-        context.next_node = None
+        if status in {"completed", "failed"}:
+            context.next_node = None
         self._save_checkpoint(context)
         self.recorder.emit("run_finished", status=status, data={"error": error, "steps": context.steps})
         return context

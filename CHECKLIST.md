@@ -37,6 +37,7 @@
 - 2026-07-29: Flowus knowledge-ingestion task routes to the experimental preparation skill.
 - 2026-07-29: a persisted feedback reload/append pitfall was fixed; 16 unit tests now pass.
 - 2026-07-29: public `main` is synchronized; runtime state remains ignored.
+- 2026-07-29: checkpoint test found that max-step interruption was terminal and lost `next_node`; scheduler now writes resumable `paused` checkpoints and regression coverage passes.
 
 ## Gradual local-agent adoption
 

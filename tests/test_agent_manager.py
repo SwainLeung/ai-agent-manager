@@ -167,6 +167,26 @@ class AgentManagerTests(unittest.TestCase):
             self.assertEqual(context.status, "completed")
             self.assertEqual(context.run_id, "resume-run")
 
+    def test_scheduler_pauses_at_max_steps_and_resumes(self):
+        graph = GraphDefinition.load(Path(__file__).parents[1] / "config" / "example-graph.json")
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "checkpoint.json"
+            first = GraphScheduler(
+                graph,
+                checkpoint_path=checkpoint,
+                max_steps=1,
+            ).run({"structured": True})
+            self.assertEqual(first.status, "paused")
+            self.assertEqual(first.error, "maximum graph steps exceeded")
+            self.assertEqual(first.next_node, "collect")
+
+            resumed = GraphScheduler(
+                graph,
+                checkpoint_path=checkpoint,
+            ).run({"structured": True}, checkpoint=checkpoint)
+            self.assertEqual(resumed.status, "completed")
+            self.assertEqual(resumed.steps, 3)
+
     def test_local_adapter_prepares_and_runs_task(self):
         with tempfile.TemporaryDirectory() as directory:
             adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)
