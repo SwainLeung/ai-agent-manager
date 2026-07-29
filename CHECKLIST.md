@@ -40,6 +40,7 @@
 - 2026-07-29: checkpoint test found that max-step interruption was terminal and lost `next_node`; scheduler now writes resumable `paused` checkpoints and regression coverage passes.
 - 2026-07-29: added entity-level DecisionMatrix; deterministic schema-known operations propose Scripts, semantic operations propose Skills, and sensitive/merge/writeback operations require human review.
 - 2026-07-29: added ProposalExecutor; Script proposals execute deterministically, Skill and human-review proposals remain pending, and large batches resume from checkpoints.
+- 2026-07-29: added promotion ledger; repeated Script success produces a reversible candidate, and human approval does not mutate the registry.
 
 ## Gradual local-agent adoption
 
@@ -69,3 +70,5 @@
 - [ ] Connect private FlowUs entity batches to `adapter decide` and review promotion candidates.
 - [x] Execute a shadow batch through ProposalExecutor without registry mutation.
 - [ ] Add reviewed promotion ledger for repeated Script success.
+- [x] Add reviewed promotion ledger for repeated Script success.
+- [ ] Add separate versioned registry-apply workflow after promotion review.

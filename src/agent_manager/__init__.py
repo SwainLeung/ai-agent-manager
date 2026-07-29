@@ -4,6 +4,7 @@ from .graph import GraphDefinition, GraphValidationError
 from .adapter import AdapterPlan, AdapterRun, LocalAgentAdapter
 from .decision import DecisionMatrix, ExecutionProposal
 from .executor import ExecutionRecord, ProposalExecutor
+from .promotion import PromotionCandidate, PromotionLedger
 from .execution import ExecutionContext, GraphExecutionError, GraphScheduler, NodeResult, RetryPolicy
 from .recorder import ExecutionRecorder, TraceEvent
 from .registry import SkillRegistry
@@ -23,6 +24,8 @@ __all__ = [
     "ExecutionProposal",
     "ExecutionRecord",
     "ProposalExecutor",
+    "PromotionCandidate",
+    "PromotionLedger",
     "NodeResult",
     "RetryPolicy",
     "Router",

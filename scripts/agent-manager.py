@@ -187,6 +187,20 @@ def cmd_adapter_execute(args: argparse.Namespace) -> int:
     return 0 if result["status"] == "completed" else 1
 
 
+def cmd_adapter_promote_propose(args: argparse.Namespace) -> int:
+    payload = json.loads(args.checkpoint.read_text(encoding="utf-8-sig"))
+    records = payload.get("records", []) if isinstance(payload, dict) else payload
+    result = adapter_from_args(args).propose_promotions(records, min_successes=args.min_successes, min_success_rate=args.min_success_rate)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_promote_review(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).review_promotion(args.operation, args.decision, args.note)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_adapter_feedback(args: argparse.Namespace) -> int:
     event = adapter_from_args(args).record_feedback(
         args.event_type,
@@ -302,6 +316,21 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--summary-only", action="store_true")
     execute.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     execute.set_defaults(func=cmd_adapter_execute)
+
+    promote = adapter_sub.add_parser("promote")
+    promote_sub = promote.add_subparsers(dest="promote_command", required=True)
+    propose_promotion = promote_sub.add_parser("propose")
+    propose_promotion.add_argument("--checkpoint", required=True, type=Path)
+    propose_promotion.add_argument("--min-successes", type=int, default=3)
+    propose_promotion.add_argument("--min-success-rate", type=float, default=0.9)
+    propose_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    propose_promotion.set_defaults(func=cmd_adapter_promote_propose)
+    review_promotion = promote_sub.add_parser("review")
+    review_promotion.add_argument("--operation", required=True)
+    review_promotion.add_argument("--decision", required=True, choices=["approve", "reject"])
+    review_promotion.add_argument("--note", required=True)
+    review_promotion.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    review_promotion.set_defaults(func=cmd_adapter_promote_review)
 
     feedback = adapter_sub.add_parser("feedback")
     feedback.add_argument("--event-type", required=True, choices=["undo", "redo", "pitfall", "fallback", "correction", "approval"])

@@ -8,6 +8,7 @@
 - Added entity-level `DecisionMatrix` and `ExecutionProposal` for Script/Skill/human-review routing.
 - Added `adapter decide` CLI flow and contract coverage without automatic rule promotion.
 - Added `ProposalExecutor` and `adapter execute` for gated Script execution with pending Skill/human-review records and resumable checkpoints.
+- Added persistent Script promotion ledger with evidence thresholds and explicit approve/reject review; registry mutation remains separate.
 
 ## [0.2.4] - 2026-07-29
 

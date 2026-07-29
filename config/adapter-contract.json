@@ -19,6 +19,11 @@
       "input": {"entity_file": "JSON object, entity array, or object with entities[]", "checkpoint": "optional path", "max_items": "optional integer"},
       "output": {"status": "completed|paused", "status_counts": "completed|pending|failed", "kind_counts": "script|skill|human_review", "checkpoint": "path"}
     },
+    "promote": {
+      "input": {"checkpoint": "execution checkpoint", "min_successes": "integer >= 1", "min_success_rate": "0..1"},
+      "output": {"candidates": "PromotionCandidate[]", "registry_mutated": "false"},
+      "review": {"decision": "approve|reject", "note": "string", "registry_mutated": "false"}
+    },
     "feedback": {
       "input": {"event_type": "undo|redo|pitfall|fallback|correction|approval", "scope": "profile|project", "subject": "string", "note": "string", "confidence": "0..1"},
       "output": {"status": "candidate", "storage": "ignored runtime state"}

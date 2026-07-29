@@ -60,6 +60,7 @@ For structured entities, use the decision matrix before execution:
 ```powershell
 python scripts/agent-manager.py adapter decide --entity-file entities.json
 python scripts/agent-manager.py adapter execute --entity-file entities.json --summary-only
+python scripts/agent-manager.py adapter promote propose --checkpoint .agent-manager/checkpoints/entities.json
 ```
 
 The matrix treats hashing, validation, link extraction, duplicate keys, and
@@ -75,3 +76,15 @@ Execution is intentionally gated:
 - human-review proposals remain `pending` for approval;
 - execution checkpoints can pause and resume by proposal index;
 - no execution result automatically changes the registry.
+
+Promotion is a separate reversible ledger:
+
+```powershell
+python scripts/agent-manager.py adapter promote review `
+  --operation duplicate_key `
+  --decision approve `
+  --note "reviewed deterministic handler"
+```
+
+Approval records evidence and review status only. Applying a promotion to the
+registry remains a separate versioned change.

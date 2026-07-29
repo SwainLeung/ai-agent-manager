@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.decision import DecisionMatrix
 from agent_manager.executor import ProposalExecutor
+from agent_manager.promotion import PromotionLedger
 from agent_manager.entropy import audit
 from agent_manager.execution import GraphScheduler, NodeResult, RetryPolicy
 from agent_manager.feedback import FeedbackStore
@@ -123,6 +124,36 @@ class AgentManagerTests(unittest.TestCase):
             ])
             self.assertEqual(result["status"], "completed")
             self.assertEqual(result["status_counts"]["completed"], 1)
+
+    def test_promotion_ledger_proposes_only_repeated_successful_scripts(self):
+        ledger = PromotionLedger()
+        records = [
+            {"subject_id": "one", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+            {"subject_id": "two", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+            {"subject_id": "three", "operation": "duplicate_key", "kind": "script", "status": "completed"},
+            {"subject_id": "skill", "operation": "ontology_classify", "kind": "skill", "status": "pending"},
+        ]
+        candidates = ledger.propose(records)
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0].operation, "duplicate_key")
+        self.assertEqual(candidates[0].status, "candidate")
+        self.assertEqual(candidates[0].success_rate, 1.0)
+
+    def test_promotion_review_is_persistent_and_does_not_apply_registry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "promotion.json"
+            ledger = PromotionLedger()
+            ledger.propose([
+                {"subject_id": "one", "operation": "link_extract", "kind": "script", "status": "completed"},
+                {"subject_id": "two", "operation": "link_extract", "kind": "script", "status": "completed"},
+                {"subject_id": "three", "operation": "link_extract", "kind": "script", "status": "completed"},
+            ])
+            ledger.save(path)
+            loaded = PromotionLedger.load(path)
+            reviewed = loaded.review("link_extract", "approve", "reviewed deterministic fixture")
+            loaded.save(path)
+            self.assertEqual(reviewed.status, "approved")
+            self.assertEqual(PromotionLedger.load(path).report()[0]["status"], "approved")
     def test_registry_rejects_duplicate_ids(self):
         with self.assertRaises(RegistryError):
             SkillRegistry([skill(), skill()])

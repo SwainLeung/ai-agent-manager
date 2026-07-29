@@ -96,6 +96,19 @@ python scripts/agent-manager.py adapter execute `
   --summary-only
 ```
 
+After repeated successful Script executions, generate a promotion candidate:
+
+```powershell
+python scripts/agent-manager.py adapter promote propose `
+  --checkpoint .agent-manager/checkpoints/entities.json `
+  --min-successes 3 `
+  --min-success-rate 0.9
+```
+
+The candidate is stored in `promotion-ledger.json`. A human may review it, but
+approval does not alter `skill-registry.json`; registry promotion requires a
+separate reviewed commit.
+
 ### Recoverable pauses
 
 When `max_steps` is reached, the scheduler returns `status: "paused"`, keeps

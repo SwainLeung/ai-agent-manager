@@ -8,6 +8,7 @@ from typing import Any, Mapping
 from .entropy import audit
 from .decision import DecisionMatrix
 from .executor import ProposalExecutor
+from .promotion import PromotionLedger
 from .execution import ExecutionContext, GraphScheduler, RetryPolicy
 from .feedback import FeedbackStore
 from .graph import GraphDefinition
@@ -80,6 +81,10 @@ class LocalAgentAdapter:
     def feedback_path(self) -> Path:
         return self.state_dir / "feedback.json"
 
+    @property
+    def promotion_path(self) -> Path:
+        return self.state_dir / "promotion-ledger.json"
+
     def prepare(
         self,
         task: str,
@@ -103,6 +108,24 @@ class LocalAgentAdapter:
         max_items: int | None = None,
     ) -> dict[str, Any]:
         return self.proposal_executor.execute_entities(entities, checkpoint=checkpoint, max_items=max_items)
+
+    def propose_promotions(
+        self,
+        records: list[Mapping[str, Any]],
+        *,
+        min_successes: int = 3,
+        min_success_rate: float = 0.9,
+    ) -> dict[str, Any]:
+        ledger = PromotionLedger.load(self.promotion_path)
+        candidates = ledger.propose(records, min_successes=min_successes, min_success_rate=min_success_rate)
+        ledger.save(self.promotion_path)
+        return {"candidates": [item.to_dict() for item in candidates], "ledger": str(self.promotion_path), "registry_mutated": False}
+
+    def review_promotion(self, operation: str, decision: str, note: str) -> dict[str, Any]:
+        ledger = PromotionLedger.load(self.promotion_path)
+        candidate = ledger.review(operation, decision, note)
+        ledger.save(self.promotion_path)
+        return {"candidate": candidate.to_dict(), "ledger": str(self.promotion_path), "registry_mutated": False}
 
     def run(
         self,
