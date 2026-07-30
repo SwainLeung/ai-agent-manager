@@ -293,6 +293,23 @@ def cmd_adapter_prompt_list(args: argparse.Namespace) -> int:
     return 0
 
 
+
+
+def cmd_adapter_lifecycle_fix(args: argparse.Namespace) -> int:
+    import json
+    adapter = adapter_from_args(args)
+    fixes = adapter.propose_fixes()
+    if not fixes:
+        print("No fix candidates found.")
+        return 0
+    if args.format == "json":
+        print(json.dumps(fixes, ensure_ascii=False, indent=2))
+    else:
+        for fix in fixes:
+            print(f"{fix['skill_id']:<24} {fix['current_status']:<16} -> {fix['proposed_status']:<16}  {fix['reason']}")
+    return 0
+
+
 def cmd_adapter_prompt_diff(args: argparse.Namespace) -> int:
     from agent_manager.prompt_registry import PromptRegistry
     prompt_path = args.state_dir / "prompts.json"
@@ -769,6 +786,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_diff.add_argument("--v2", required=True)
     p_diff.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     p_diff.set_defaults(func=cmd_adapter_prompt_diff)
+
+    lc_cmd = adapter_sub.add_parser("lifecycle")
+    lc_sub = lc_cmd.add_subparsers(dest="lifecycle_command", required=True)
+    lc_fix = lc_sub.add_parser("fix")
+    lc_fix.add_argument("--format", default="text", choices=["text", "json"])
+    lc_fix.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    lc_fix.set_defaults(func=cmd_adapter_lifecycle_fix)
 
     rules = adapter_sub.add_parser("rules")
     rules_sub = rules.add_subparsers(dest="rules_command", required=True)

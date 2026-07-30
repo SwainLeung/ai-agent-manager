@@ -335,6 +335,14 @@ class LocalAgentAdapter:
         report = self.slim_report()
         return _print_slim(report)
 
+
+
+    def propose_fixes(self) -> list[dict]:
+        from .lifecycle import propose_fixes
+        from .registry import SkillRegistry
+        registry = SkillRegistry.load(self.registry_path)
+        return propose_fixes(registry.skills)
+
     def report(self) -> dict[str, Any]:
         store = FeedbackStore.load(self.feedback_path)
         ledger = UsageLedger.load(self.usage_path)

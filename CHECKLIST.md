@@ -235,7 +235,7 @@
 - **Dependencies**: `sandbox.py`, Python `subprocess` module.
 - **Estimated complexity**: ⭐⭐⭐ (os-specific, ~350 lines)
 
-#### [ ] 9. Auto-generate fix proposals from lifecycle drift detection
+#### [x] 9. Auto-generate fix proposals from lifecycle drift (completed 2026-07-30) detection
 
 - **Target version**: v1.2.0
 - **Dual-pyramid domain**: Dynamic governance (§2)

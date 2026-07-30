@@ -1075,5 +1075,23 @@ class PromptRegistryTests(unittest.TestCase):
         self.assertIn("hello", diff)
 
 
+
+class LifecycleFixTests(unittest.TestCase):
+    def test_propose_fixes_detects_degradation(self):
+        from agent_manager.lifecycle import propose_fixes
+        from agent_manager.models import Skill
+        skills = [
+            Skill(id="bad.skill", layer="domain", kind="skill", frequency="warm", version="0.1.0",
+                  status="experimental", calls=25, successes=5, triggers=["x"]),
+            Skill(id="good.skill", layer="domain", kind="skill", frequency="warm", version="0.1.0",
+                  status="stable", calls=100, successes=95, triggers=["y"]),
+        ]
+        fixes = propose_fixes(skills)
+        self.assertEqual(len(fixes), 2)
+        fix_ids = [f["skill_id"] for f in fixes]
+        self.assertIn("bad.skill", fix_ids)
+        self.assertTrue(any("lifecycle-stall" in f["reason"] for f in fixes))
+
+
 if __name__ == "__main__":
     unittest.main()
