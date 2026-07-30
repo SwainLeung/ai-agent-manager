@@ -1,9 +1,9 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 复核日期：2026-07-30
-> 项目版本：0.6.0
-> 测试通过：48/48 单元测试通过，public-check 通过
-> Git 状态：工作区干净；本地 `main` 已初始化并配置 `origin`，远程同步另行执行
+> 项目版本：0.8.0.dev0
+> 测试通过：52/52 单元测试通过，public-check 通过
+> Git 状态：`main` 已与 `origin/main` 同步；运行态仍保存在被忽略的 `.agent-manager/`
 
 ---
 
@@ -14,9 +14,9 @@
 - `src/agent_manager/execution.py` 提供 Graph Scheduler、ExecutionContext、retry、fallback、checkpoint 和 max-step 保护。
 - `src/agent_manager/recorder.py` 提供结构化 JSON trace，记录 run、node、failure、checkpoint 和 completion 事件。
 - CLI 新增 `graph run` 与 `trace show`。
-- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 48 个单元测试通过。
+- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 52 个单元测试通过。
 
-本版本仍暂不实现自动反思器、规则蒸馏器和 Skill→Script 自动编译，这些保留为后续版本。
+早期 v0.2 阶段尚未实现自动反思、规则蒸馏和 Skill→Script 固化；截至 v0.8.0，反馈元认知、审核式规则候选和 Skill→Script 候选生成均已具备，自动写回 Registry 仍保留人工门。
 
 ### v0.2.1 本机适配增量
 
@@ -68,6 +68,20 @@
 - 新增确定性 `Reflector`，按 scope/subject/signal 聚合高置信度证据并生成假设。
 - 新增 `RuleDistiller`，输出 `candidate` 规则；所有候选保持 `registry_mutated=false`、`injection=disabled`。
 - `adapter report` 新增 `metacognition.hypotheses` 和 `metacognition.rule_candidates`，不会自动注入 Router 或修改 registry。
+
+### v0.7.0 Reviewed Rule Injection 增量
+
+- 新增 `GovernedRule` 与 `RuleStore`，将 Profile/Project 规则候选持久化到被忽略的 `.agent-manager/rules.json`。
+- 新增 `adapter rules sync/list/review/revoke`，候选只有在明确 approve 后才进入 active 状态，revoke 可撤销。
+- `AdapterPlan.active_rules` 只暴露已审核且启用的规则元数据；provider prompt、凭据、工具和公开 registry 仍由 host/人工流程负责。
+- 规则审核和撤销回归测试通过，未发生 registry mutation。
+
+### v0.8.0 Skill→Script Solidification 增量
+
+- 新增 `SkillScriptCompiler`，按指定 Skill、operation、成功次数和成功率阈值生成确定性 Script candidate。
+- 新增 `adapter solidify` CLI，支持从执行记录或 checkpoint 对象生成候选 descriptor。
+- 候选包含来源 Skill、版本、证据数量、成功率和审核要求，并固定为 `status=candidate`、`registry_mutated=false`、`review_required=true`。
+- 生成流程只输出候选，不自动写入 Registry；完整测试达到 52 个，public-check 通过。
 
 ---
 
@@ -203,7 +217,7 @@
 | 交互截获层（Interceptor） | `metacognition.py` `FeedbackInterceptor` | **100%** | 统一校验并捕获反馈事件 |
 | 反思器（Reflector） | `metacognition.py` `Reflector` | **100%** | 按证据和置信度生成确定性假设 |
 | 规则蒸馏器（RuleDistiller） | `metacognition.py` `RuleDistiller` | **100%** | 输出 candidate 规则，不注入、不改 registry |
-| **缺失：Profile/Project 规则注入执行链** | 未实现 | **0%** | 无运行时注入点 |
+| Profile/Project 规则注入执行链 | `rules.py` `adapter.py` | **80%** | sync/review/revoke、active rule plan metadata 已实现；provider prompt 应用仍由 host 负责 |
 
 ---
 
@@ -264,8 +278,8 @@
 | - 执行记录（calls/successes） | `metrics.py` `UsageLedger` + `adapter.report()` | **100%** | 运行时 ledger 持久化，按 run_id+skill_id 幂等计数并投影 lifecycle |
 | **2. 脚本固化闭环** | | | |
 | - 稳定性评估（lifecycle.propose） | `lifecycle.py` | **100%** | 基于调用量和成功率 |
-| - Skill→Script 生成 | 未实现 | **0%** | |
-| - 沙箱回归测试 | 未实现 | **0%** | |
+| - Skill→Script 生成 | `solidification.py` `adapter.py` | **80%** | 按 evidence threshold 生成 candidate descriptor，不自动写回 |
+| - 沙箱回归测试 | `tests/test_agent_manager.py` + CLI smoke | **50%** | 单元/CLI 隔离验证已完成，真实沙箱执行仍未实现 |
 | - Script 注册与路由更新 | `registry.py` 已支持注册 | **50%** | 注册表支持，但自动更新无 |
 | **3. 用户自适应闭环** | | | |
 | - 反馈事件存储 | `feedback.py` | **100%** | 完整实现 |
@@ -273,7 +287,7 @@
 | - 交互截获层 | `FeedbackInterceptor` | **100%** | 反馈事件统一进入可逆存储 |
 | - 反思器 | `Reflector` | **100%** | 高置信度证据聚合为假设 |
 | - 规则蒸馏器 | `RuleDistiller` | **100%** | 候选规则带 evidence/confidence/gate |
-| - 规则注入执行链 | 未实现 | **0%** | |
+| - 规则注入执行链 | `rules.py` `adapter.py` | **80%** | 审核启用、撤销和 plan metadata 已实现，host 负责最终解释 |
 | **4. 自我纠错闭环** | | | |
 | - Graph 边定义 fallback | `config/example-graph.json` + `execution.py` | **100%** | 图定义与运行时均支持 error→fallback 边 |
 | - 运行时断路器 | 未实现 | **0%** | |
@@ -329,12 +343,12 @@
 |--------|----------|----------|----------|----------|-----------|
 | ① 双金字塔 | ✅ | ✅ | ✅ | ✅ | **75%** — 数据模型完整，自动升级有，但长尾流水线和冷热淘汰无 |
 | ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **80%** — 生命周期、promotion、registry apply/rollback 已有，自动修复和灰度发布仍缺 |
-| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **85%** — 决策矩阵、执行器、人工门控和 provider/tool 边界已有，自动固化仍缺 |
-| ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **85%** — 截获、反思和候选蒸馏已有，Profile/Project 规则注入仍需人工审批链 |
+| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **90%** — 决策矩阵、执行器、人工门控和 Skill→Script 候选固化已有，自动注册和沙箱执行仍缺 |
+| ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **92%** — 截获、反思、候选蒸馏、审核启用和撤销已有，provider prompt 应用仍由 host 负责 |
 | ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **70%** — registry、usage metrics 与本地文件只读审计已有，自动清理/压缩仍缺 |
-| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **78%** — 执行、恢复、计量、门控、反馈和反思闭环已有，自动注入与清理仍缺 |
+| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **84%** — 执行、恢复、计量、门控、反馈、规则审核和候选固化闭环已有，自动注册与清理仍缺 |
 | ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
-| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 48 测试 ✅ | **~85%（阶段性估算）** |
+| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 52 测试 ✅ | **~88%（阶段性估算）** |
 
 ### 按代码量估算
 
@@ -342,12 +356,12 @@
 |------|--------|------|
 | 理论笔记（本地） | 7 | ✅ 完成 |
 | 文档蒸馏（公开） | 7 | ✅ 完成 |
-| 核心 Python 模块 | 16+ | ✅ 路由、图执行、反馈、元认知、实体执行、promotion、registry apply、文件审计、usage metrics、provider/tool boundary 可运行 |
+| 核心 Python 模块 | 18+ | ✅ 路由、图执行、反馈、元认知、规则审核、Skill→Script 候选固化、实体执行、promotion、registry apply、文件审计、usage metrics、provider/tool boundary 可运行 |
 | CLI 脚本 | 2 | ✅ registry/route/graph/trace/adapter/audit/lifecycle 等命令可用 |
-| 单元测试 | 1（含48个测试） | ✅ 全部通过 |
+| 单元测试 | 1（含52个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
-| Git 提交 | 已初始化 | ✅ 当前版本与报告一并提交；工作区状态按发布流程检查 |
+| Git 提交 | 已初始化 | ✅ 0.7.0/0.8.0 功能提交已推送；本报告同步后随修正提交推送 |
 
 ---
 
@@ -480,9 +494,9 @@ graph TB
 | 🔴 P0 | 运行时 Skill.calls/successes 计量 | 100% |
 | 🔴 P0 | Provider/Tool contract + mock/dry-run | 100% |
 | 🔴 P0 | Provider-specific production adapter | 0% |
-| 🟡 P1 | Skill→Script 自动固化引擎 | 0% |
+| 🟡 P1 | Skill→Script 自动注册、沙箱执行与回滚 | 30% |
 | 🟡 P1 | Feedback Interceptor + Reflector + RuleDistiller | 100% |
-| 🟡 P1 | Profile/Project 规则注入执行链 | 0% |
+| 🟡 P1 | Profile/Project 规则 host 应用与策略编排 | 80% |
 | 🟢 P2 | 记忆压缩与 TTL 清理 | 0% |
 | 🟢 P2 | 可观测性 Metrics 输出 | 100% |
 | 🔵 P3 | 动态图生成（LLM→JSON GraphPlan） | 0% |
@@ -490,4 +504,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager 0.6.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界和反馈元认知闭环的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 Profile/Project 规则注入、provider-specific production adapter、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 0.8.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界、反馈元认知、审核式规则管理和 Skill→Script 候选固化的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、GovernedRule/RuleStore、SkillScriptCompiler、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前重点是 provider-specific production adapter、候选 Script 的沙箱回归/自动注册与回滚、host 侧规则应用、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
