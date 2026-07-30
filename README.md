@@ -22,6 +22,7 @@ python scripts/agent-manager.py graph run --file config/example-graph.json
 python scripts/agent-manager.py trace show --file .agent-manager/traces/<run-id>.json
 python scripts/agent-manager.py adapter prepare --task "summarize a report"
 python scripts/agent-manager.py adapter run --task "summarize a report"
+python scripts/agent-manager.py adapter host-run --task "summarize a report"
 python scripts/agent-manager.py adapter feedback --event-type correction --scope project --subject tone --note "use concise language" --confidence 0.9
 python scripts/agent-manager.py adapter report
 python scripts/agent-manager.py audit

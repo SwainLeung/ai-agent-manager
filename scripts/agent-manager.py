@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from agent_manager.entropy import audit
 from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.file_audit import run_local_audit
+from agent_manager.host import LocalAgentHost
 from agent_manager.execution import GraphScheduler, RetryPolicy
 from agent_manager.graph import GraphDefinition
 from agent_manager.lifecycle import propose
@@ -170,6 +171,27 @@ def cmd_adapter_run(args: argparse.Namespace) -> int:
     )
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
     return 0 if result.context.status == "completed" else 1
+
+
+def cmd_adapter_host_run(args: argparse.Namespace) -> int:
+    host = LocalAgentHost.for_project(ROOT, state_dir=args.state_dir)
+    result = host.run_task(
+        args.task,
+        parse_input(args.input),
+        adapter_signals(args),
+        graph_path=args.file,
+        checkpoint=args.resume,
+        trace=args.trace,
+        max_attempts=args.max_attempts,
+        backoff_seconds=args.backoff_seconds,
+        max_steps=args.max_steps,
+        correction_subject=args.feedback_subject,
+        correction_note=args.feedback_note,
+        correction_scope=args.feedback_scope,
+        correction_confidence=args.feedback_confidence,
+    )
+    print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+    return 0 if result.run.context.status == "completed" else 1
 
 
 def cmd_adapter_decide(args: argparse.Namespace) -> int:
@@ -356,6 +378,24 @@ def build_parser() -> argparse.ArgumentParser:
     for option in ("structured", "deterministic", "low_latency", "creative"):
         adapter_run.add_argument(f"--{option.replace('_', '-')}", action="store_true", dest=option)
     adapter_run.set_defaults(func=cmd_adapter_run)
+
+    host_run = adapter_sub.add_parser("host-run")
+    host_run.add_argument("--task", required=True)
+    host_run.add_argument("--input", default="{}")
+    host_run.add_argument("--file", type=Path)
+    host_run.add_argument("--resume", type=Path)
+    host_run.add_argument("--trace", type=Path)
+    host_run.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    host_run.add_argument("--max-attempts", type=int, default=1)
+    host_run.add_argument("--backoff-seconds", type=float, default=0.0)
+    host_run.add_argument("--max-steps", type=int, default=100)
+    host_run.add_argument("--feedback-subject")
+    host_run.add_argument("--feedback-note")
+    host_run.add_argument("--feedback-scope", choices=["profile", "project"], default="project")
+    host_run.add_argument("--feedback-confidence", type=float, default=0.5)
+    for option in ("structured", "deterministic", "low_latency", "creative"):
+        host_run.add_argument(f"--{option.replace('_', '-')}", action="store_true", dest=option)
+    host_run.set_defaults(func=cmd_adapter_host_run)
 
     decide = adapter_sub.add_parser("decide")
     decide.add_argument("--entity-file", required=True, type=Path)

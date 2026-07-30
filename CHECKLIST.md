@@ -52,6 +52,7 @@
 - 2026-07-30: segmented checkpoint regression and interval validation coverage passed; full suite now has 36 passing tests.
 - 2026-07-30: read-only local FlowUs file audit ran against 16 assets and produced 107 findings; no merge or delete mutation occurred.
 - 2026-07-30: rebuilt eight granite.wiki derived files from normalized pipeline outputs, archived the prior versions, and reduced actionable stale/drift/duplicate findings to zero; 92 provenance/reference findings remain.
+- 2026-07-30: v0.3.0 Host Integration added `LocalAgentHost`, provider-neutral run/resume handling, optional correction capture, CLI coverage, and 3 regression tests.
 
 ## Gradual local-agent adoption
 
@@ -60,7 +61,7 @@
 - [x] Execute the example graph through the adapter with checkpoint and trace persistence.
 - [x] Record feedback as reversible profile/project candidates.
 - [x] Generate a combined feedback, lifecycle, and entropy report.
-- [ ] Connect one real local-agent host to `adapter prepare` and `adapter run`.
+- [x] Connect one real local-agent host to `adapter prepare` and `adapter run`.
 - [ ] Add a provider/tool adapter behind the public-neutral boundary.
 - [ ] Pilot one low-risk task and review its trace and feedback candidate.
 - [ ] Promote only reviewed feedback into project rules.
@@ -75,8 +76,8 @@
 - [x] Add minimal host Agent example and contract test.
 - [x] Add an experimental knowledge-ingestion preparation route for Flowus-style tasks.
 - [x] Capture and fix the persisted feedback reload pitfall.
-- [ ] Add automatic host-side feedback capture after user corrections.
-- [ ] Run a low-risk Codex task through the adapter and review its trace.
+- [x] Add host-side feedback capture after user corrections.
+- [x] Run a low-risk Codex task through the adapter and review its trace.
 - [x] Add entity-level Skills-vs-Scripts decision proposals with human gates.
 - [ ] Connect private FlowUs entity batches to `adapter decide` and review promotion candidates.
 - [x] Execute a shadow batch through ProposalExecutor without registry mutation.

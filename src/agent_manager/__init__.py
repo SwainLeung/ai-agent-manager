@@ -11,6 +11,7 @@ from .recorder import ExecutionRecorder, TraceEvent
 from .registry import SkillRegistry
 from .router import Router
 from .file_audit import run_local_audit
+from .host import HostTaskResult, LocalAgentHost
 
 __all__ = [
     "ExecutionContext",
@@ -38,4 +39,6 @@ __all__ = [
     "SkillRegistry",
     "TraceEvent",
     "run_local_audit",
+    "HostTaskResult",
+    "LocalAgentHost",
 ]

@@ -17,6 +17,13 @@
 - Added segmented atomic checkpoint writes for large proposal batches, avoiding per-proposal O(n²) checkpoint I/O.
 - Added read-only local file Anti-entropy audit with provenance, freshness, duplicate, ownership, reference-integrity, merge-candidate, and delete-candidate reports.
 
+## [0.3.0] - 2026-07-30
+
+- Added `LocalAgentHost` as a provider-neutral host-facing facade for governed task runs and checkpoint resume.
+- Added host-side correction capture that records reversible feedback candidates without auto-promoting rules.
+- Added `adapter host-run` CLI flow with optional correction capture.
+- Added host integration contract, example usage, and regression coverage for run, pause/resume, and feedback validation.
+
 ## [0.2.4] - 2026-07-29
 
 - Added an experimental knowledge-ingestion preparation route for Flowus/ontology/Obsidian mapping tasks.

@@ -12,6 +12,7 @@ from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.decision import DecisionMatrix
 from agent_manager.executor import ProposalExecutor
 from agent_manager.file_audit import run_local_audit
+from agent_manager.host import LocalAgentHost
 from agent_manager.promotion import PromotionLedger
 from agent_manager.registry_apply import RegistryApplyError, RegistryApplier
 from agent_manager.entropy import audit
@@ -517,6 +518,53 @@ class AgentManagerTests(unittest.TestCase):
             self.assertTrue(result.trace_path.exists())
             self.assertTrue(result.checkpoint_path.exists())
 
+    def test_local_host_runs_and_captures_correction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            host = LocalAgentHost.for_project(Path(__file__).parents[1], state_dir=directory)
+            result = host.run_task(
+                "summarize a report",
+                {"structured": True},
+                RouteSignals(structured=True),
+                correction_subject="task-completion-state",
+                correction_note="keep the report aligned before commit",
+                correction_confidence=0.99,
+            )
+            self.assertEqual(result.run.context.status, "completed")
+            self.assertIsNotNone(result.feedback)
+            self.assertEqual(result.feedback.event_type, "correction")
+            self.assertTrue(host.adapter.feedback_path.exists())
+
+    def test_local_host_resumes_paused_checkpoint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "host-checkpoint.json"
+            host = LocalAgentHost.for_project(Path(__file__).parents[1], state_dir=directory)
+            paused = host.run_task(
+                "summarize a report",
+                {"structured": True},
+                RouteSignals(structured=True),
+                checkpoint=checkpoint,
+                max_steps=1,
+            )
+            self.assertEqual(paused.run.context.status, "paused")
+            resumed = host.resume_task(
+                "summarize a report",
+                checkpoint,
+                {"structured": True},
+                RouteSignals(structured=True),
+            )
+            self.assertEqual(resumed.run.context.status, "completed")
+            self.assertEqual(resumed.run.context.steps, 3)
+
+    def test_local_host_requires_subject_for_correction_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            host = LocalAgentHost.for_project(Path(__file__).parents[1], state_dir=directory)
+            with self.assertRaisesRegex(ValueError, "correction_subject is required"):
+                host.run_task(
+                    "summarize a report",
+                    {"structured": True},
+                    correction_note="missing subject",
+                )
+
     def test_local_adapter_routes_knowledge_ingestion_prep(self):
         adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1])
         plan = adapter.prepare("Flowus ontology knowledge mapping sync")
@@ -535,6 +583,7 @@ class AgentManagerTests(unittest.TestCase):
         contract = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(contract["name"], "local-agent-adapter")
         self.assertIn("prepare", contract["operations"])
+        self.assertIn("host_run", contract["operations"])
         self.assertIn("checkpoint_saved", contract["events"])
 
 

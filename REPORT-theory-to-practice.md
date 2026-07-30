@@ -1,8 +1,8 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 复核日期：2026-07-30
-> 项目版本：0.2.4（当前本地分支包含后续未发布增量）
-> 测试通过：37/37 单元测试通过，public-check 通过
+> 项目版本：0.3.0
+> 测试通过：40/40 单元测试通过，public-check 通过
 > Git 状态：工作区干净；本地 `main` 已初始化并配置 `origin`，远程同步另行执行
 
 ---
@@ -14,7 +14,7 @@
 - `src/agent_manager/execution.py` 提供 Graph Scheduler、ExecutionContext、retry、fallback、checkpoint 和 max-step 保护。
 - `src/agent_manager/recorder.py` 提供结构化 JSON trace，记录 run、node、failure、checkpoint 和 completion 事件。
 - CLI 新增 `graph run` 与 `trace show`。
-- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 37 个单元测试通过。
+- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 40 个单元测试通过。
 
 本版本仍暂不实现自动反思器、规则蒸馏器和 Skill→Script 自动编译，这些保留为后续版本。
 
@@ -38,12 +38,15 @@
 - 修复 `FeedbackStore` 持久化重载后无法追加反馈的问题，并增加回归测试。
 - 公共仓库只保留 provider-neutral 的准备、审计、决策和执行门控；本地 FlowUs 文件审计为只读，不执行合并、删除、写回或公开发布。
 
-### 当前未发布增量（截至 2026-07-30）
+### v0.3.0 Host Integration 增量
 
 - max-step 中断改为可恢复的 `paused` checkpoint，并保留 `next_node`；终态 `failed/completed` checkpoint 不允许误恢复。
 - 新增实体级 `DecisionMatrix`、`ProposalExecutor`、Script/Skill/human-review 门控，以及大批量分段 checkpoint/resume。
 - 新增 Promotion Ledger、版本化 registry apply manifest、显式 approval、backup、drift check 与 rollback/undo。
 - 新增只读本地文件逆熵审计，输出 provenance、freshness、duplicate、ownership、reference-integrity、merge/delete candidate 报告。
+- 新增 `LocalAgentHost` provider-neutral 宿主门面，统一任务执行、paused checkpoint 恢复和 trace/checkpoint 句柄返回。
+- 新增宿主侧纠正捕获，自动写入可逆 `FeedbackEvent` 候选，不自动提升为规则。
+- 新增 `adapter host-run` CLI、机器契约、示例和 run/resume/feedback 回归测试；模型调用、工具认证和最终响应仍由 host 负责。
 
 ---
 
@@ -310,7 +313,7 @@
 | ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **65%** — registry 与本地文件只读审计已有，自动清理/压缩/指标仍缺 |
 | ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **65%** — 执行、恢复、门控、反馈和审计闭环已有，自动反思与清理仍缺 |
 | ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
-| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 37 测试 ✅ | **~75%（阶段性估算）** |
+| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 40 测试 ✅ | **~78%（阶段性估算）** |
 
 ### 按代码量估算
 
@@ -320,10 +323,10 @@
 | 文档蒸馏（公开） | 7 | ✅ 完成 |
 | 核心 Python 模块 | 12+ | ✅ 路由、图执行、反馈、实体执行、promotion、registry apply、文件审计可运行 |
 | CLI 脚本 | 2 | ✅ registry/route/graph/trace/adapter/audit/lifecycle 等命令可用 |
-| 单元测试 | 1（含37个测试） | ✅ 全部通过 |
+| 单元测试 | 1（含40个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
-| Git 提交 | 已初始化 | ✅ `bec9512`；工作区干净 |
+| Git 提交 | 已初始化 | ✅ 当前版本与报告一并提交；工作区状态按发布流程检查 |
 
 ---
 
@@ -435,7 +438,7 @@ graph TB
 
 ### 必须完成
 
-- [x] **初始化 Git 提交** — 当前 `main` 已有提交，最新为 `bec9512`
+- [x] **初始化 Git 提交** — 当前 `main` 已有提交，版本提交已完成
 - [x] **配置远程 URL** — `origin` 已指向 `https://github.com/SwainLeung/ai-agent-manager.git`
 - [x] **运行 `git diff --cached --check`** — 本次提交前已通过
 - [ ] **验证 GitHub Actions CI** — `.github/workflows/ci.yml` 在 PR 前确认工作
@@ -454,7 +457,7 @@ graph TB
 | 优先级 | 方向 | 当前完成度 |
 |--------|------|-----------|
 | 🔴 P0 | Skill.calls/successes 自动回写 | 50% |
-| 🔴 P0 | Provider/host 侧真实工具适配 | 0% |
+| 🔴 P0 | Provider-specific 工具适配 | 0% |
 | 🟡 P1 | Skill→Script 自动固化引擎 | 0% |
 | 🟡 P1 | 反馈拦截层 + 反思器 + 规则蒸馏器 | 0% |
 | 🟢 P2 | 记忆压缩与 TTL 清理 | 0% |
@@ -464,4 +467,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager 0.2.4 已从治理契约参考实现推进为可执行、可审计、可恢复的本地控制平面：Router、Graph Scheduler、trace、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback 和只读文件审计均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 provider/host 适配、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 0.3.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入的本地控制平面：Router、Graph Scheduler、trace、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计和 `LocalAgentHost` 均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 provider-specific 工具适配、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。

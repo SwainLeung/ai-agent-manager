@@ -11,6 +11,10 @@
       "input": {"task": "string", "inputs": "object", "graph": "optional path", "retry": "optional RetryPolicy"},
       "output": {"context": "ExecutionContext", "trace": "path", "checkpoint": "path"}
     },
+    "host_run": {
+      "input": {"task": "string", "inputs": "object", "checkpoint": "optional path", "correction": "optional reversible FeedbackEvent"},
+      "output": {"run": "AdapterRun", "feedback": "optional FeedbackEvent", "provider_calls": "none"}
+    },
     "decide": {
       "input": {"entity_file": "JSON object, entity array, or object with entities[]"},
       "output": {"proposals": "ExecutionProposal[]", "counts": "script|skill|human_review", "human_gate_required": "boolean"}

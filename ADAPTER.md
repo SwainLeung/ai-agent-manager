@@ -2,11 +2,12 @@
 
 `LocalAgentAdapter` is the small integration seam between a host Agent and the Agent Manager control plane.
 
-It gives a host Agent four governed operations:
+It gives a host Agent six governed operations:
 
 ```text
 prepare(task)   -> route candidates
 run(task)       -> graph execution + checkpoint + trace
+host-run(task)  -> host facade + optional correction capture
 feedback(...)   -> reversible improvement candidate
 report()        -> feedback + lifecycle + entropy signals
 decide(...)     -> entity operation proposal: script / skill / human_review
@@ -21,6 +22,7 @@ From the repository root:
 ```powershell
 python scripts/agent-manager.py adapter prepare --task "summarize a report"
 python scripts/agent-manager.py adapter run --task "summarize a report"
+python scripts/agent-manager.py adapter host-run --task "summarize a report" --feedback-subject tone --feedback-note "use concise language" --feedback-confidence 0.9
 python scripts/agent-manager.py adapter feedback --event-type correction --scope project --subject tone --note "use concise language" --confidence 0.9
 python scripts/agent-manager.py adapter report
 ```
@@ -28,13 +30,18 @@ python scripts/agent-manager.py adapter report
 For a Python host:
 
 ```python
-from agent_manager.adapter import LocalAgentAdapter
+from agent_manager.host import LocalAgentHost
 
-adapter = LocalAgentAdapter.for_project(".")
-plan = adapter.prepare("summarize a report")
-result = adapter.run("summarize a report", {"structured": True})
-if result.context.status != "completed":
-    raise RuntimeError(result.context.error)
+host = LocalAgentHost.for_project(".")
+result = host.run_task(
+    "summarize a report",
+    {"structured": True},
+    correction_subject="tone",
+    correction_note="use concise language",
+    correction_confidence=0.9,
+)
+if result.run.context.status != "completed":
+    raise RuntimeError(result.run.context.error)
 ```
 
 ## State boundary

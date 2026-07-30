@@ -42,6 +42,30 @@ request
 
 `prepare` is lightweight and safe to run before every non-trivial task. `run` is for a graph-backed workflow. A host may execute its own provider handler between routing and graph execution when the public example graph is not sufficient.
 
+### Host Session facade
+
+Version 0.3.0 adds `LocalAgentHost` for hosts that want one small facade around
+the adapter. It preserves the provider-neutral boundary while joining a task
+run, checkpoint resume, and an optional user correction into one result:
+
+```python
+from agent_manager.host import LocalAgentHost
+
+host = LocalAgentHost.for_project(".")
+result = host.run_task(
+    "summarize a report",
+    inputs={"structured": True},
+    correction_subject="task-completion-state",
+    correction_note="align the report before committing",
+    correction_confidence=0.99,
+)
+```
+
+`result.run` contains the normal `AdapterRun`; `result.feedback` is either
+`None` or a reversible `FeedbackEvent`. The host still owns model calls,
+tools, approvals, and final response composition. A paused run can be resumed
+with `host.resume_task(task, checkpoint, inputs=...)`.
+
 ## 4. Minimal Python integration
 
 ```python
@@ -165,6 +189,7 @@ Review `adapter report` before promoting any candidate. Promotion should be expl
 ## 6. Integration checklist for another Agent
 
 - [ ] Import `LocalAgentAdapter` or invoke the adapter CLI.
+- [x] Use `LocalAgentHost` or `adapter host-run` when the host needs run/resume plus correction capture.
 - [ ] Call `prepare` before non-trivial work.
 - [ ] Pass only task metadata and safe structured inputs to the public layer.
 - [ ] Keep provider calls in the host Agent or a private provider adapter.
