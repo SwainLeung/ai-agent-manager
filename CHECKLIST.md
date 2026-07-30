@@ -159,7 +159,7 @@
 
 ---
 
-#### [ ] 4. Circuit breaker: runtime protection for runaway failure loops
+#### [x] 4. Circuit breaker: runtime protection (completed 2026-07-30) for runaway failure loops
 
 - **Target version**: v1.2.0
 - **Dual-pyramid domain**: Loop Engineering — self-correction loop (§6)
@@ -174,7 +174,7 @@
 - **Dependencies**: `GraphScheduler._run_node()` already has retry logic; breaker sits before retry.
 - **Estimated complexity**: ⭐⭐ (extend scheduler, ~120 lines)
 
-#### [ ] 5. Error analyzer: structured failure aggregation from trace events
+#### [x] 5. Error analyzer: structured failure aggregation (completed 2026-07-30) from trace events
 
 - **Target version**: v1.2.0
 - **Dual-pyramid domain**: Loop Engineering — self-correction loop (§6)
@@ -203,7 +203,7 @@
 - **Dependencies**: `graph.py` Schema + `execution.py` Scheduler.
 - **Estimated complexity**: ⭐⭐⭐ (cross-module, ~400 lines)
 
-#### [ ] 7. Prompt template registry (Prompts as Code)
+#### [x] 7. Prompt template registry (completed 2026-07-30) (Prompts as Code)
 
 - **Target version**: v1.2.0
 - **Dual-pyramid domain**: Anti-entropy governance (§5)

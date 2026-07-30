@@ -985,5 +985,95 @@ class SlimReportTests(unittest.TestCase):
         self.assertIn("1", text)
 
 
+
+class CircuitBreakerTests(unittest.TestCase):
+    def test_breaker_trips_after_consecutive_failures(self):
+        from agent_manager.execution import GraphScheduler, CircuitBreakerPolicy, NodeResult
+        from agent_manager.graph import GraphDefinition
+        import tempfile, json
+        graph_def = {"id": "btest", "start": "a", "nodes": [{"id": "a"}], "edges": []}
+        with tempfile.NamedTemporaryFile("w", suffix=".json", encoding="utf-8", delete=False) as f:
+            json.dump(graph_def, f)
+            path = f.name
+        try:
+            graph = GraphDefinition.load(path)
+            scheduler = GraphScheduler(
+                graph,
+                breaker_policy=CircuitBreakerPolicy(max_consecutive_failures=1),
+                handlers={"a": lambda n, c: NodeResult.failure("fail")}
+            )
+            ctx = scheduler.run({})
+            self.assertEqual(ctx.status, "failed")
+        finally:
+            import os as _os
+            _os.unlink(path)
+def test_breaker_resets_on_success(self):
+        from agent_manager.execution import GraphScheduler, CircuitBreakerPolicy, NodeResult
+        from agent_manager.graph import GraphDefinition
+        import tempfile, json
+        graph_def = {"id": "breset", "start": "a", "nodes": [{"id": "a"}], "edges": [{"from": "a", "to": "a", "when": "success"}]}
+        with tempfile.NamedTemporaryFile("w", suffix=".json", encoding="utf-8", delete=False) as f:
+            json.dump(graph_def, f)
+            path = f.name
+        try:
+            graph = GraphDefinition.load(path)
+            scheduler = GraphScheduler(
+                graph,
+                breaker_policy=CircuitBreakerPolicy(max_consecutive_failures=5),
+                handlers={"a": lambda n, c: NodeResult.success(output="ok")}
+            )
+            ctx = scheduler.run({})
+            self.assertEqual(ctx.status, "completed")
+        finally:
+            import os as _os
+            _os.unlink(path)
+
+
+
+class AnalyzerTests(unittest.TestCase):
+    def test_analyzer_reports_node_stats(self):
+        from agent_manager.analyzer import analyze_trace
+        from agent_manager.recorder import ExecutionRecorder
+        rec = ExecutionRecorder(graph_id="test")
+        rec.emit("run_started", status="running")
+        rec.emit("node_started", node_id="a")
+        rec.emit("node_finished", node_id="a", data={"signal": "success"})
+        rec.emit("node_started", node_id="b")
+        rec.emit("node_failed", node_id="b", data={"error": "timeout"})
+        rec.emit("run_finished", status="failed")
+        report = analyze_trace(rec)
+        self.assertEqual(report["total_nodes"], 2)
+        self.assertEqual(report["success_count"], 1)
+        self.assertEqual(report["failure_count"], 1)
+        self.assertEqual(len(report["top_errors"]), 1)
+        self.assertEqual(report["top_errors"][0]["error"], "timeout")
+
+
+class PromptRegistryTests(unittest.TestCase):
+    def test_add_and_get_prompt(self):
+        from agent_manager.prompt_registry import PromptRegistry
+        reg = PromptRegistry()
+        reg.add("test.prompt", "hello world", "0.1.0", tags=["test"])
+        t = reg.get("test.prompt")
+        self.assertIsNotNone(t)
+        self.assertEqual(t.content, "hello world")
+
+    def test_list_by_tag(self):
+        from agent_manager.prompt_registry import PromptRegistry
+        reg = PromptRegistry()
+        reg.add("a", "content a", "0.1.0", tags=["x"])
+        reg.add("b", "content b", "0.1.0", tags=["y"])
+        self.assertEqual(len(reg.list_by_tag("x")), 1)
+        self.assertEqual(len(reg.list_by_tag("y")), 1)
+
+    def test_prompt_diff_generates_output(self):
+        from agent_manager.prompt_registry import PromptRegistry
+        reg = PromptRegistry()
+        reg.add("p", "hello", "0.1.0", tags=[])
+        reg.add("p", "hello world", "0.2.0", tags=[])
+        diff = reg.diff("p", "0.1.0", "0.2.0")
+        self.assertIn("hello", diff)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -257,6 +257,51 @@ def load_records_file(path: Path) -> list[dict[str, Any]]:
 
 
 
+
+
+def cmd_adapter_analyze(args: argparse.Namespace) -> int:
+    from agent_manager.recorder import ExecutionRecorder
+    from agent_manager.analyzer import analyze_trace
+    import json
+    recorder = ExecutionRecorder.load(args.file)
+    report = analyze_trace(recorder)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_prompt_add(args: argparse.Namespace) -> int:
+    from agent_manager.prompt_registry import PromptRegistry
+    prompt_path = args.state_dir / "prompts.json"
+    registry = PromptRegistry.load(prompt_path)
+    content = Path(args.content).read_text(encoding="utf-8") if Path(args.content).exists() else args.content
+    template = registry.add(args.id, content, args.version, tags=args.tag)
+    registry.save(prompt_path)
+    print(f"prompt {args.id} v{args.version} added")
+    return 0
+
+
+def cmd_adapter_prompt_list(args: argparse.Namespace) -> int:
+    from agent_manager.prompt_registry import PromptRegistry
+    prompt_path = args.state_dir / "prompts.json"
+    registry = PromptRegistry.load(prompt_path)
+    if args.tag:
+        templates = registry.list_by_tag(args.tag)
+    else:
+        templates = registry.templates
+    for t in templates:
+        print(f"{t.prompt_id:<20} v{t.version:<8} {t.lifecycle:<10} tags={t.tags}")
+    return 0
+
+
+def cmd_adapter_prompt_diff(args: argparse.Namespace) -> int:
+    from agent_manager.prompt_registry import PromptRegistry
+    prompt_path = args.state_dir / "prompts.json"
+    registry = PromptRegistry.load(prompt_path)
+    diff = registry.diff(args.id, args.v1, args.v2)
+    print(diff)
+    return 0
+
+
 def cmd_adapter_pitfall_list(args: argparse.Namespace) -> int:
     adapter = adapter_from_args(args)
     summary = adapter.pitfall_summary()
@@ -699,6 +744,31 @@ def build_parser() -> argparse.ArgumentParser:
     pf_show.add_argument("--id", required=True)
     pf_show.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     pf_show.set_defaults(func=cmd_adapter_pitfall_show)
+
+    analyze = adapter_sub.add_parser("analyze")
+    analyze.add_argument("--file", required=True, type=Path)
+    analyze.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    analyze.set_defaults(func=cmd_adapter_analyze)
+
+    prompt = adapter_sub.add_parser("prompt")
+    prompt_sub = prompt.add_subparsers(dest="prompt_command", required=True)
+    p_add = prompt_sub.add_parser("add")
+    p_add.add_argument("--id", required=True)
+    p_add.add_argument("--content", required=True)
+    p_add.add_argument("--version", default="0.1.0")
+    p_add.add_argument("--tag", action="append", default=[])
+    p_add.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    p_add.set_defaults(func=cmd_adapter_prompt_add)
+    p_list = prompt_sub.add_parser("list")
+    p_list.add_argument("--tag")
+    p_list.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    p_list.set_defaults(func=cmd_adapter_prompt_list)
+    p_diff = prompt_sub.add_parser("diff")
+    p_diff.add_argument("--id", required=True)
+    p_diff.add_argument("--v1", required=True)
+    p_diff.add_argument("--v2", required=True)
+    p_diff.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    p_diff.set_defaults(func=cmd_adapter_prompt_diff)
 
     rules = adapter_sub.add_parser("rules")
     rules_sub = rules.add_subparsers(dest="rules_command", required=True)

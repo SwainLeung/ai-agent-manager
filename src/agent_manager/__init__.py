@@ -7,7 +7,7 @@ from .executor import ExecutionRecord, ProposalExecutor
 from .promotion import PromotionCandidate, PromotionLedger
 from .registry_apply import RegistryApplyError, RegistryApplier, RegistryApplyManifest, RegistryPatch
 from .registry_proposal import RegistryChangeProposal, RegistryChangeWorkflow, RegistryProposalError
-from .execution import ExecutionContext, GraphExecutionError, GraphScheduler, NodeResult, RetryPolicy
+from .execution import CircuitBreakerPolicy, ExecutionContext, GraphExecutionError, GraphScheduler, NodeResult, RetryPolicy
 from .recorder import ExecutionRecorder, TraceEvent
 from .registry import SkillRegistry
 from .router import Router
@@ -19,6 +19,8 @@ from .tooling import CallableToolAdapter, DryRunToolAdapter, EffectGate, Externa
 from .metacognition import FeedbackInterceptor, MetaCognitionEngine, ReflectionHypothesis, RuleCandidate, Reflector, RuleDistiller
 from .rules import GovernedRule, RuleStore
 from .solidification import ScriptCandidate, SkillScriptCompiler, SolidificationError, SolidificationReport
+from .analyzer import analyze_trace
+from .prompt_registry import PromptRegistry, PromptTemplate
 from .sandbox import SandboxError, SandboxReport, ScriptSandbox
 from .visualization import render
 
@@ -45,6 +47,7 @@ __all__ = [
     "RegistryChangeProposal",
     "RegistryChangeWorkflow",
     "RegistryProposalError",
+    "CircuitBreakerPolicy",
     "NodeResult",
     "RetryPolicy",
     "Router",
@@ -79,6 +82,9 @@ __all__ = [
     "SolidificationReport",
     "SandboxError",
     "SandboxReport",
+    "analyze_trace",
+    "PromptRegistry",
+    "PromptTemplate",
     "ScriptSandbox",
     "render",
 ]

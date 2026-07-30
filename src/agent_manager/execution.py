@@ -71,6 +71,25 @@ class GraphExecutionError(ValueError):
     pass
 
 
+
+@dataclass(frozen=True)
+class CircuitBreakerPolicy:
+    max_consecutive_failures: int = 3
+    recovery_interval_seconds: float = 60.0
+
+
+@dataclass
+class BreakerState:
+    node_id: str
+    consecutive_failures: int = 0
+    tripped: bool = False
+    tripped_at: float | None = None
+
+    def reset(self) -> None:
+        self.consecutive_failures = 0
+        self.tripped = False
+        self.tripped_at = None
+
 class GraphScheduler:
     """Execute a validated graph with retry, fallback, and checkpoints."""
 
@@ -81,6 +100,7 @@ class GraphScheduler:
         *,
         recorder: ExecutionRecorder | None = None,
         retry_policy: RetryPolicy | None = None,
+        breaker_policy: CircuitBreakerPolicy | None = None,
         checkpoint_path: str | Path | None = None,
         max_steps: int = 100,
     ):
@@ -91,6 +111,8 @@ class GraphScheduler:
         self.handlers = dict(handlers or {})
         self.recorder = recorder or ExecutionRecorder(graph_id=graph.graph_id)
         self.retry_policy = retry_policy or RetryPolicy()
+        self.breaker_policy = breaker_policy or CircuitBreakerPolicy()
+        self._breaker_states: dict[str, BreakerState] = {}
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
         self.max_steps = max_steps
         self._nodes = {str(node["id"]): node for node in graph.nodes}
@@ -157,6 +179,12 @@ class GraphScheduler:
 
     def _execute_node(self, node: dict[str, Any], context: ExecutionContext) -> NodeResult:
         node_id = str(node["id"])
+        bstate = self._breaker_states.get(node_id)
+        if bstate and bstate.tripped:
+            now = time.perf_counter()
+            if now - (bstate.tripped_at or 0) < self.breaker_policy.recovery_interval_seconds:
+                return NodeResult.failure(f"circuit_breaker: node {node_id} is open")
+            bstate.reset()
         handler = self.handlers.get(node_id, self._default_handler)
         last_result = NodeResult.failure("node did not execute")
         for attempt in range(1, self.retry_policy.max_attempts + 1):
@@ -168,6 +196,8 @@ class GraphScheduler:
                 last_result = NodeResult.failure(f"{type(exc).__name__}: {exc}")
             duration_ms = round((time.perf_counter() - started) * 1000, 3)
             if last_result.success:
+                if node_id in self._breaker_states:
+                    self._breaker_states[node_id].reset()
                 self.recorder.emit(
                     "node_finished",
                     node_id=node_id,
@@ -185,6 +215,11 @@ class GraphScheduler:
                 duration_ms=duration_ms,
                 data={"error": last_result.error},
             )
+            bstate = self._breaker_states.setdefault(node_id, BreakerState(node_id=node_id))
+            bstate.consecutive_failures += 1
+            if bstate.consecutive_failures >= self.breaker_policy.max_consecutive_failures:
+                bstate.tripped = True
+                bstate.tripped_at = time.perf_counter()
             if attempt < self.retry_policy.max_attempts and self.retry_policy.backoff_seconds:
                 time.sleep(self.retry_policy.backoff_seconds)
         return last_result
