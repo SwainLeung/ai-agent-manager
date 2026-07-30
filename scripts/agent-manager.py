@@ -228,6 +228,36 @@ def cmd_adapter_execute(args: argparse.Namespace) -> int:
     return 0 if result["status"] == "completed" else 1
 
 
+def load_records_file(path: Path) -> list[dict[str, Any]]:
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    if isinstance(payload, dict) and isinstance(payload.get("records"), list):
+        records = payload["records"]
+    elif isinstance(payload, list):
+        records = payload
+    else:
+        raise ValueError("records file must contain an array or an object with records[]")
+    if not all(isinstance(record, dict) for record in records):
+        raise ValueError("records must be JSON objects")
+    return records
+
+
+def cmd_adapter_solidify(args: argparse.Namespace) -> int:
+    records = load_records_file(args.records)
+    result = adapter_from_args(args).solidify_skill(
+        args.skill_id,
+        records,
+        operation=args.operation,
+        min_successes=args.min_successes,
+        min_success_rate=args.min_success_rate,
+    )
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        result["output"] = str(args.output)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["eligible"] else 1
+
+
 def cmd_adapter_promote_propose(args: argparse.Namespace) -> int:
     payload = json.loads(args.checkpoint.read_text(encoding="utf-8-sig"))
     records = payload.get("records", []) if isinstance(payload, dict) else payload
@@ -459,6 +489,16 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--summary-only", action="store_true")
     execute.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     execute.set_defaults(func=cmd_adapter_execute)
+
+    solidify = adapter_sub.add_parser("solidify")
+    solidify.add_argument("--skill-id", required=True)
+    solidify.add_argument("--records", required=True, type=Path)
+    solidify.add_argument("--operation", required=True)
+    solidify.add_argument("--min-successes", type=int, default=3)
+    solidify.add_argument("--min-success-rate", type=float, default=0.9)
+    solidify.add_argument("--output", type=Path)
+    solidify.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    solidify.set_defaults(func=cmd_adapter_solidify)
 
     promote = adapter_sub.add_parser("promote")
     promote_sub = promote.add_subparsers(dest="promote_command", required=True)

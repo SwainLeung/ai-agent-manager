@@ -21,6 +21,7 @@ from .recorder import ExecutionRecorder
 from .registry import SkillRegistry
 from .rules import RuleStore
 from .router import RouteSignals, Router
+from .solidification import SkillScriptCompiler
 
 
 @dataclass(frozen=True)
@@ -265,6 +266,22 @@ class LocalAgentAdapter:
             "injection": "active-rules-exposed-to-plan",
             "storage": str(self.rules_path),
         }
+
+    def solidify_skill(
+        self,
+        skill_id: str,
+        records: list[Mapping[str, Any]],
+        *,
+        operation: str,
+        min_successes: int = 3,
+        min_success_rate: float = 0.9,
+    ) -> dict[str, Any]:
+        source = self.registry.get(skill_id)
+        report = SkillScriptCompiler(
+            min_successes=min_successes,
+            min_success_rate=min_success_rate,
+        ).compile(source, records, operation=operation)
+        return report.to_dict()
 
     def report(self) -> dict[str, Any]:
         store = FeedbackStore.load(self.feedback_path)

@@ -31,6 +31,10 @@
       "input": {"entity_file": "JSON object, entity array, or manifest object with entities[] and optional entity_count", "checkpoint": "optional path", "max_items": "optional integer", "checkpoint_every": "integer >= 1, default 100"},
       "output": {"status": "completed|paused", "status_counts": "completed|pending|failed", "kind_counts": "script|skill|human_review", "entity_fingerprint": "SHA-256 of ordered input entities", "checkpoint": "path"}
     },
+    "solidify": {
+      "input": {"skill_id": "existing Skill id", "records": "execution record array or checkpoint object", "operation": "deterministic operation", "min_successes": "integer >= 1", "min_success_rate": "0..1"},
+      "output": {"eligible": "boolean", "candidate": "optional Script descriptor", "registry_mutated": "false", "review_required": "true"}
+    },
     "audit_files": {
       "input": {"root": "local directory", "output_dir": "report directory", "stale_days": "number >= 0, default 2"},
       "output": {"manifest": "flowus-local-manifest.json", "report": "flowus-anti-entropy-report.json", "merge_candidates": "flowus-merge-candidates.json", "delete_candidates": "flowus-delete-candidates.json", "mutation_performed": "false"}

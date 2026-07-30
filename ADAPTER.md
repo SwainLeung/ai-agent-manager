@@ -166,3 +166,19 @@ python scripts/agent-manager.py adapter rules revoke `
 Only approved and enabled rules appear in `AdapterPlan.active_rules`. The host
 Agent decides how to interpret that metadata; the adapter does not alter
 provider prompts, credentials, tools, or the public Skill registry.
+
+## Skill to Script solidification
+
+Repeated execution evidence can produce a deterministic Script candidate:
+
+```powershell
+python scripts/agent-manager.py adapter solidify `
+  --skill-id domain.report-synthesis `
+  --records .agent-manager/records.json `
+  --operation summarize `
+  --output .agent-manager/solidification/report.json
+```
+
+The compiler requires minimum success evidence and emits a descriptor with
+`status=candidate`, `registry_mutated=false`, and `review_required=true`. It
+does not write the public registry or make a Skill executable automatically.

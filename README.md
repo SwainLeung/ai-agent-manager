@@ -29,6 +29,7 @@ python scripts/agent-manager.py adapter feedback --event-type correction --scope
 python scripts/agent-manager.py adapter report
 python scripts/agent-manager.py adapter rules sync
 python scripts/agent-manager.py adapter rules review --rule-id project-correction-tone --decision approve --note "reviewed"
+python scripts/agent-manager.py adapter solidify --skill-id domain.report-synthesis --records .agent-manager/records.json --operation summarize
 python scripts/agent-manager.py audit
 python -m unittest discover -s tests -v
 ```

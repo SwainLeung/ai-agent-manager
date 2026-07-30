@@ -30,6 +30,7 @@ task
 - `recorder.py`: records structured run traces and persists them as JSON.
 - `adapter.py`: bridges a local agent into routing, graph execution, feedback, and improvement reports.
 - `rules.py`: stores reviewed Profile/Project rules and exposes only explicitly enabled rules to adapter plans.
+- `solidification.py`: compiles repeated Skill evidence into candidate Script descriptors without mutating the registry.
 - `entropy.py`: finds lifecycle stalls, low-success capabilities, and duplicate
   signatures.
 

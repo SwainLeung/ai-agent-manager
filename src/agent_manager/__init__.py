@@ -17,6 +17,7 @@ from .provider import MockProvider, ProviderAdapter, ProviderResponse, ProviderU
 from .tooling import CallableToolAdapter, DryRunToolAdapter, EffectGate, ExternalEffectDenied, ToolAdapter, ToolResult
 from .metacognition import FeedbackInterceptor, MetaCognitionEngine, ReflectionHypothesis, RuleCandidate, Reflector, RuleDistiller
 from .rules import GovernedRule, RuleStore
+from .solidification import ScriptCandidate, SkillScriptCompiler, SolidificationError, SolidificationReport
 
 __all__ = [
     "ExecutionContext",
@@ -66,4 +67,8 @@ __all__ = [
     "RuleDistiller",
     "GovernedRule",
     "RuleStore",
+    "ScriptCandidate",
+    "SkillScriptCompiler",
+    "SolidificationError",
+    "SolidificationReport",
 ]

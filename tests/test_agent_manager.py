@@ -29,6 +29,7 @@ from agent_manager.recorder import ExecutionRecorder
 from agent_manager.registry import RegistryError, SkillRegistry
 from agent_manager.router import RouteSignals, Router
 from agent_manager.rules import GovernedRule, RuleStore
+from agent_manager.solidification import SkillScriptCompiler, SolidificationError
 
 
 def skill(**overrides):
@@ -700,6 +701,36 @@ class AgentManagerTests(unittest.TestCase):
             plan = adapter.prepare("summarize a report", RouteSignals(structured=True))
             self.assertEqual(plan.active_rules[0]["rule_id"], candidate_id)
             self.assertFalse(adapter.report()["rules"]["registry_mutated"])
+
+    def test_skill_script_compiler_creates_candidate_without_registry_mutation(self):
+        source = skill(id="domain.report-synthesis", kind="skill", version="0.3.0")
+        records = [
+            {"subject_id": "one", "operation": "summarize", "kind": "skill", "status": "completed"},
+            {"subject_id": "two", "operation": "summarize", "kind": "skill", "status": "completed"},
+            {"subject_id": "three", "operation": "summarize", "kind": "skill", "status": "completed"},
+        ]
+        report = SkillScriptCompiler().compile(source, records, operation="summarize")
+        self.assertTrue(report.eligible)
+        self.assertEqual(report.candidate.id, "domain.report-synthesis.script.summarize")
+        self.assertEqual(report.candidate.status, "candidate")
+        self.assertFalse(report.candidate.registry_mutated)
+        self.assertTrue(report.candidate.review_required)
+
+    def test_skill_script_compiler_rejects_insufficient_evidence_and_script_sources(self):
+        source = skill(id="domain.report-synthesis", kind="skill")
+        report = SkillScriptCompiler().compile(
+            source,
+            [{"operation": "summarize", "kind": "skill", "status": "completed"}],
+            operation="summarize",
+        )
+        self.assertFalse(report.eligible)
+        self.assertIn("minimum-successes-not-met", report.reasons)
+        with self.assertRaises(SolidificationError):
+            SkillScriptCompiler().compile(
+                skill(id="fixed", kind="script"),
+                [],
+                operation="summarize",
+            )
 
     def test_adapter_report_exposes_runtime_metrics_and_projected_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:
