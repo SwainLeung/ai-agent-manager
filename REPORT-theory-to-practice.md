@@ -1,8 +1,8 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 复核日期：2026-07-30
-> 项目版本：0.5.0
-> 测试通过：44/44 单元测试通过，public-check 通过
+> 项目版本：0.6.0
+> 测试通过：48/48 单元测试通过，public-check 通过
 > Git 状态：工作区干净；本地 `main` 已初始化并配置 `origin`，远程同步另行执行
 
 ---
@@ -14,7 +14,7 @@
 - `src/agent_manager/execution.py` 提供 Graph Scheduler、ExecutionContext、retry、fallback、checkpoint 和 max-step 保护。
 - `src/agent_manager/recorder.py` 提供结构化 JSON trace，记录 run、node、failure、checkpoint 和 completion 事件。
 - CLI 新增 `graph run` 与 `trace show`。
-- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 44 个单元测试通过。
+- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 48 个单元测试通过。
 
 本版本仍暂不实现自动反思器、规则蒸馏器和 Skill→Script 自动编译，这些保留为后续版本。
 
@@ -61,6 +61,13 @@
 - 新增 `ToolAdapter`、`DryRunToolAdapter`、`CallableToolAdapter` 与 `EffectGate`；工具默认 dry-run，真实外部效果必须显式批准。
 - `LocalAgentHost` 支持注入 provider/tool adapter，但不持有凭据、不默认写回、不绕过 human approval。
 - 新增 `adapter provider-mock`、`adapter tool-dry-run` CLI 冒烟流程和边界回归测试。
+
+### v0.6.0 Feedback Metacognition 增量
+
+- 新增 `FeedbackInterceptor`，统一捕获 correction/undo/redo/pitfall/fallback/approval 反馈事件。
+- 新增确定性 `Reflector`，按 scope/subject/signal 聚合高置信度证据并生成假设。
+- 新增 `RuleDistiller`，输出 `candidate` 规则；所有候选保持 `registry_mutated=false`、`injection=disabled`。
+- `adapter report` 新增 `metacognition.hypotheses` 和 `metacognition.rule_candidates`，不会自动注入 Router 或修改 registry。
 
 ---
 
@@ -193,9 +200,9 @@
 | 持久化存储 | `feedback.py` `save()` | **100%** | JSON 格式落盘 |
 | CLI 集成 | `scripts/agent-manager.py adapter feedback/report` | **100%** | 已支持 feedback 记录与综合 report 输出 |
 | 反馈机制蒸馏文档 | `docs/theory/04-feedback-and-metacognition.md` | **100%** | 已输出 |
-| **缺失：交互截获层（Interceptor）** | 未实现 | **0%** | 理论提及但无监听层 |
-| **缺失：反思器（Reflector）** | 未实现 | **0%** | 理论提及但无自动分析假设引擎 |
-| **缺失：规则蒸馏器（RuleDistiller）** | 未实现 | **0%** | 理论提及但无假设→规则转化 |
+| 交互截获层（Interceptor） | `metacognition.py` `FeedbackInterceptor` | **100%** | 统一校验并捕获反馈事件 |
+| 反思器（Reflector） | `metacognition.py` `Reflector` | **100%** | 按证据和置信度生成确定性假设 |
+| 规则蒸馏器（RuleDistiller） | `metacognition.py` `RuleDistiller` | **100%** | 输出 candidate 规则，不注入、不改 registry |
 | **缺失：Profile/Project 规则注入执行链** | 未实现 | **0%** | 无运行时注入点 |
 
 ---
@@ -263,9 +270,9 @@
 | **3. 用户自适应闭环** | | | |
 | - 反馈事件存储 | `feedback.py` | **100%** | 完整实现 |
 | - 候选规则聚合 | `feedback.py` candidates() | **100%** | |
-| - 交互截获层 | 未实现 | **0%** | |
-| - 反思器 | 未实现 | **0%** | |
-| - 规则蒸馏器 | 未实现 | **0%** | |
+| - 交互截获层 | `FeedbackInterceptor` | **100%** | 反馈事件统一进入可逆存储 |
+| - 反思器 | `Reflector` | **100%** | 高置信度证据聚合为假设 |
+| - 规则蒸馏器 | `RuleDistiller` | **100%** | 候选规则带 evidence/confidence/gate |
 | - 规则注入执行链 | 未实现 | **0%** | |
 | **4. 自我纠错闭环** | | | |
 | - Graph 边定义 fallback | `config/example-graph.json` + `execution.py` | **100%** | 图定义与运行时均支持 error→fallback 边 |
@@ -323,11 +330,11 @@
 | ① 双金字塔 | ✅ | ✅ | ✅ | ✅ | **75%** — 数据模型完整，自动升级有，但长尾流水线和冷热淘汰无 |
 | ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **80%** — 生命周期、promotion、registry apply/rollback 已有，自动修复和灰度发布仍缺 |
 | ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **85%** — 决策矩阵、执行器、人工门控和 provider/tool 边界已有，自动固化仍缺 |
-| ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **70%** — 反馈持久化、候选聚合和 CLI 已有，截获/反思/注入仍缺 |
+| ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **85%** — 截获、反思和候选蒸馏已有，Profile/Project 规则注入仍需人工审批链 |
 | ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **70%** — registry、usage metrics 与本地文件只读审计已有，自动清理/压缩仍缺 |
-| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **70%** — 执行、恢复、计量、门控、反馈和审计闭环已有，自动反思与清理仍缺 |
+| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **78%** — 执行、恢复、计量、门控、反馈和反思闭环已有，自动注入与清理仍缺 |
 | ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
-| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 44 测试 ✅ | **~82%（阶段性估算）** |
+| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 48 测试 ✅ | **~85%（阶段性估算）** |
 
 ### 按代码量估算
 
@@ -335,9 +342,9 @@
 |------|--------|------|
 | 理论笔记（本地） | 7 | ✅ 完成 |
 | 文档蒸馏（公开） | 7 | ✅ 完成 |
-| 核心 Python 模块 | 15+ | ✅ 路由、图执行、反馈、实体执行、promotion、registry apply、文件审计、usage metrics、provider/tool boundary 可运行 |
+| 核心 Python 模块 | 16+ | ✅ 路由、图执行、反馈、元认知、实体执行、promotion、registry apply、文件审计、usage metrics、provider/tool boundary 可运行 |
 | CLI 脚本 | 2 | ✅ registry/route/graph/trace/adapter/audit/lifecycle 等命令可用 |
-| 单元测试 | 1（含44个测试） | ✅ 全部通过 |
+| 单元测试 | 1（含48个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
 | Git 提交 | 已初始化 | ✅ 当前版本与报告一并提交；工作区状态按发布流程检查 |
@@ -474,7 +481,8 @@ graph TB
 | 🔴 P0 | Provider/Tool contract + mock/dry-run | 100% |
 | 🔴 P0 | Provider-specific production adapter | 0% |
 | 🟡 P1 | Skill→Script 自动固化引擎 | 0% |
-| 🟡 P1 | 反馈拦截层 + 反思器 + 规则蒸馏器 | 0% |
+| 🟡 P1 | Feedback Interceptor + Reflector + RuleDistiller | 100% |
+| 🟡 P1 | Profile/Project 规则注入执行链 | 0% |
 | 🟢 P2 | 记忆压缩与 TTL 清理 | 0% |
 | 🟢 P2 | 可观测性 Metrics 输出 | 100% |
 | 🔵 P3 | 动态图生成（LLM→JSON GraphPlan） | 0% |
@@ -482,4 +490,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager 0.5.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量和 provider/tool 安全边界的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 provider-specific production adapter、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 0.6.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界和反馈元认知闭环的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 Profile/Project 规则注入、provider-specific production adapter、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。

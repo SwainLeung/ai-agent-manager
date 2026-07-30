@@ -55,6 +55,7 @@
 - 2026-07-30: v0.3.0 Host Integration added `LocalAgentHost`, provider-neutral run/resume handling, optional correction capture, CLI coverage, and 3 regression tests.
 - 2026-07-30: v0.4.0 runtime accounting added ignored `UsageLedger` metrics, idempotent run/skill counting, paused-to-completed upgrades, and 2 regression tests; full suite now has 42 passing tests.
 - 2026-07-30: v0.5.0 Provider/Tool boundary added provider-neutral interfaces, MockProvider, dry-run tools, explicit EffectGate approval, CLI smoke flows, and 2 regression tests; full suite now has 44 passing tests.
+- 2026-07-30: v0.6.0 Feedback metacognition added Interceptor, Reflector, RuleDistiller, candidate-only rule output, and 4 regression tests; full suite now has 48 passing tests.
 
 ## Gradual local-agent adoption
 

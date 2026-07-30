@@ -10,6 +10,7 @@ run(task)       -> graph execution + checkpoint + trace
 host-run(task)  -> host facade + optional correction capture
 feedback(...)   -> reversible improvement candidate
 report()        -> feedback + lifecycle + entropy signals + metrics
+metacognition  -> hypotheses + reversible rule candidates
 decide(...)     -> entity operation proposal: script / skill / human_review
 ```
 
@@ -65,6 +66,11 @@ from a terminal failure before choosing retry, fallback, or restart.
 `.agent-manager/usage.json`; the public registry remains a baseline and is not
 rewritten by normal task execution. A resumed paused run updates its existing
 `run_id + skill_id` record instead of creating a duplicate call.
+
+Version 0.6.0 adds deterministic feedback metacognition to `adapter report`:
+high-confidence feedback is reflected into hypotheses and distilled into
+candidate rules. Candidates remain non-injected and do not mutate the registry
+until a separate reviewed promotion workflow approves them.
 
 Do not commit credentials, private prompts, user data, production logs, traces, checkpoints, or feedback state.
 

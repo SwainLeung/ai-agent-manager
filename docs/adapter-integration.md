@@ -103,6 +103,24 @@ Tools default to dry-run. A non-dry-run call is rejected unless both
 `allow_external` and `approved` are true. Credentials and provider
 authentication remain entirely outside the public package.
 
+### Feedback metacognition
+
+Version 0.6.0 adds a deterministic feedback loop:
+
+```text
+host correction/undo/pitfall
+  -> FeedbackInterceptor
+  -> Reflector hypothesis
+  -> RuleDistiller candidate
+  -> human review / promotion workflow
+```
+
+`adapter report` returns `metacognition.hypotheses` and
+`metacognition.rule_candidates`. Each candidate is explicitly marked
+`status: candidate`, `registry_mutated: false`, and `injection: disabled`.
+Notes are used as feedback evidence but are not copied into distilled public
+rule payloads.
+
 ## 4. Minimal Python integration
 
 ```python

@@ -14,6 +14,7 @@ from agent_manager.executor import ProposalExecutor
 from agent_manager.file_audit import run_local_audit
 from agent_manager.host import LocalAgentHost
 from agent_manager.metrics import UsageLedger
+from agent_manager.metacognition import FeedbackInterceptor, MetaCognitionEngine, RuleDistiller
 from agent_manager.provider import MockProvider, ProviderUnavailable
 from agent_manager.tooling import CallableToolAdapter, EffectGate, ExternalEffectDenied
 from agent_manager.promotion import PromotionLedger
@@ -617,6 +618,47 @@ class AgentManagerTests(unittest.TestCase):
             host = LocalAgentHost.for_project(Path(__file__).parents[1], state_dir=directory)
             with self.assertRaises(ProviderUnavailable):
                 host.complete("provider unavailable")
+
+    def test_feedback_interceptor_captures_validated_event(self):
+        store = FeedbackStore()
+        event = FeedbackInterceptor(store).capture(
+            "correction",
+            "project",
+            "tone",
+            "use concise language",
+            0.9,
+        )
+        self.assertEqual(event.subject, "tone")
+        self.assertEqual(len(store.events), 1)
+
+    def test_reflector_groups_high_confidence_feedback_without_exposing_notes(self):
+        store = FeedbackStore()
+        interceptor = FeedbackInterceptor(store)
+        interceptor.capture("correction", "project", "tone", "private note one", 0.9)
+        interceptor.capture("correction", "project", "tone", "private note two", 0.8)
+        interceptor.capture("correction", "project", "tone", "low confidence", 0.4)
+        hypotheses = MetaCognitionEngine().reflector.reflect(store.events)
+        self.assertEqual(len(hypotheses), 1)
+        self.assertEqual(hypotheses[0].evidence_count, 2)
+        self.assertNotIn("private", hypotheses[0].hypothesis)
+
+    def test_rule_distiller_keeps_candidates_reversible_and_uninjected(self):
+        store = FeedbackStore()
+        FeedbackInterceptor(store).capture("pitfall", "project", "sync", "avoid it", 0.95)
+        report = MetaCognitionEngine().analyze(store)
+        candidate = report["rule_candidates"][0]
+        self.assertEqual(candidate["status"], "candidate")
+        self.assertFalse(candidate["registry_mutated"])
+        self.assertEqual(candidate["injection"], "disabled")
+        self.assertEqual(candidate["action"], "avoid-pitfall")
+
+    def test_adapter_report_exposes_metacognition_candidates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)
+            adapter.record_feedback("correction", "project", "tone", "use concise language", 0.9)
+            report = adapter.report()
+            self.assertEqual(report["metacognition"]["registry_mutated"], False)
+            self.assertEqual(report["metacognition"]["rule_candidates"][0]["subject"], "tone")
 
     def test_adapter_report_exposes_runtime_metrics_and_projected_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:

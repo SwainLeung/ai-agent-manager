@@ -17,6 +17,13 @@
 - Added segmented atomic checkpoint writes for large proposal batches, avoiding per-proposal O(n²) checkpoint I/O.
 - Added read-only local file Anti-entropy audit with provenance, freshness, duplicate, ownership, reference-integrity, merge-candidate, and delete-candidate reports.
 
+## [0.6.0] - 2026-07-30
+
+- Added `FeedbackInterceptor` for validated host-side correction, undo, redo, pitfall, fallback, and approval capture.
+- Added deterministic `Reflector` hypotheses grouped by feedback evidence and confidence.
+- Added `RuleDistiller` reversible candidates with `registry_mutated=false` and `injection=disabled` safeguards.
+- Exposed metacognition hypotheses and rule candidates through `adapter report` without automatic policy injection.
+
 ## [0.5.0] - 2026-07-30
 
 - Added provider-neutral `ProviderAdapter` and deterministic `MockProvider` interfaces.

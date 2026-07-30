@@ -50,7 +50,7 @@
     },
     "report": {
       "input": {},
-      "output": {"feedback_candidates": "array", "lifecycle_proposals": "array", "entropy_findings": "array", "metrics": "runtime usage and status metrics"}
+      "output": {"feedback_candidates": "array", "lifecycle_proposals": "array", "entropy_findings": "array", "metrics": "runtime usage and status metrics", "metacognition": "hypotheses and reversible rule candidates"}
     }
   },
   "events": [

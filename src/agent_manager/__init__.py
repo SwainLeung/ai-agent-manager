@@ -15,6 +15,7 @@ from .host import HostTaskResult, LocalAgentHost
 from .metrics import UsageEntry, UsageLedger
 from .provider import MockProvider, ProviderAdapter, ProviderResponse, ProviderUnavailable
 from .tooling import CallableToolAdapter, DryRunToolAdapter, EffectGate, ExternalEffectDenied, ToolAdapter, ToolResult
+from .metacognition import FeedbackInterceptor, MetaCognitionEngine, ReflectionHypothesis, RuleCandidate, Reflector, RuleDistiller
 
 __all__ = [
     "ExecutionContext",
@@ -56,4 +57,10 @@ __all__ = [
     "ExternalEffectDenied",
     "ToolAdapter",
     "ToolResult",
+    "FeedbackInterceptor",
+    "MetaCognitionEngine",
+    "ReflectionHypothesis",
+    "RuleCandidate",
+    "Reflector",
+    "RuleDistiller",
 ]

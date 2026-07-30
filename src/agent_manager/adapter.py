@@ -16,6 +16,7 @@ from .graph import GraphDefinition
 from .lifecycle import propose
 from .models import FeedbackEvent, RouteDecision
 from .metrics import UsageLedger
+from .metacognition import FeedbackInterceptor, MetaCognitionEngine
 from .recorder import ExecutionRecorder
 from .registry import SkillRegistry
 from .router import RouteSignals, Router
@@ -202,9 +203,8 @@ class LocalAgentAdapter:
         note: str,
         confidence: float = 0.5,
     ) -> FeedbackEvent:
-        event = FeedbackEvent(event_type, scope, subject, note, confidence)
         store = FeedbackStore.load(self.feedback_path)
-        store.record(event)
+        event = FeedbackInterceptor(store).capture(event_type, scope, subject, note, confidence)
         self.feedback_path.parent.mkdir(parents=True, exist_ok=True)
         store.save(self.feedback_path)
         return event
@@ -215,11 +215,13 @@ class LocalAgentAdapter:
         projected_skills = ledger.project(self.registry.skills)
         metrics = ledger.report(self.registry.skills)
         metrics["usage_path"] = str(self.usage_path)
+        metacognition = MetaCognitionEngine().analyze(store)
         return {
             "feedback_candidates": store.candidates(),
             "entropy_findings": [asdict(item) for item in audit(list(projected_skills))],
             "lifecycle_proposals": [asdict(propose(skill)) for skill in projected_skills],
             "metrics": metrics,
+            "metacognition": metacognition,
             "state_dir": str(self.state_dir),
         }
 
