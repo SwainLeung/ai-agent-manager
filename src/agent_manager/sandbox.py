@@ -2,9 +2,19 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from typing import Any, Iterable, Mapping
+from enum import Enum
+import json
+import subprocess
+from tempfile import TemporaryDirectory
+import sys
 
 from .decision import ExecutionProposal
 from .executor import ProposalExecutor
+
+
+class SandboxMode(Enum):
+    IN_PROCESS = "in_process"
+    SUBPROCESS = "subprocess"
 
 
 class SandboxError(ValueError):
@@ -46,6 +56,7 @@ class ScriptSandbox:
         entities: Iterable[Mapping[str, Any]],
         *,
         drift_tolerance: float = 0.05,
+        mode: SandboxMode = SandboxMode.IN_PROCESS,
     ) -> SandboxReport:
         payload = candidate.get("candidate") if isinstance(candidate.get("candidate"), dict) else candidate
         candidate_id = str(payload.get("id", ""))
@@ -61,6 +72,8 @@ class ScriptSandbox:
         if not 0 <= drift_tolerance <= 1:
             raise ValueError("drift_tolerance must be between 0 and 1")
 
+        if mode == SandboxMode.SUBPROCESS:
+            return self._replay_subprocess(candidate, entities)
         source_entities = list(entities)
         selected = []
         skipped = 0
@@ -114,3 +127,26 @@ class ScriptSandbox:
             cases=tuple(cases),
             reasons=tuple(reasons),
         )
+
+    def _replay_subprocess(self, candidate: dict | Mapping[str, Any], entities: Iterable[Mapping[str, Any]]) -> SandboxReport:
+        """Run replay in a Python subprocess for OS-level isolation."""
+        payload = {"candidate": dict(candidate) if hasattr(candidate, "get") else candidate, "entities": list(entities)}
+        sandbox_dir = r"D:\AI Agent Manager\src"
+        script = (
+            "import sys, json; sys.path.insert(0, %r); "
+            "from agent_manager.sandbox import ScriptSandbox; "
+            "data = json.loads(sys.stdin.read()); "
+            "result = ScriptSandbox().replay(data[\"candidate\"], data[\"entities\"]); "
+            "print(json.dumps(result.to_dict()))"
+        ) % sandbox_dir
+        try:
+            cp = subprocess.run(
+                [sys.executable, "-c", script],
+                input=json.dumps(payload),
+                capture_output=True, text=True, timeout=30,
+            )
+            if cp.returncode != 0:
+                raise SandboxError(f"subprocess sandbox failed: {cp.stderr}")
+            return SandboxReport(**json.loads(cp.stdout))
+        except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError) as exc:
+            raise SandboxError(f"subprocess error: {exc}")

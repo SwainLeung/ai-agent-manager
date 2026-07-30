@@ -219,7 +219,7 @@
 - **Dependencies**: No core dependencies; new standalone module.
 - **Estimated complexity**: ⭐⭐ (1 module, ~300 lines, but extends CLI)
 
-#### [ ] 8. OS-level sandbox isolation for Script replay
+#### [x] 8. OS-level sandbox isolation for Script replay (completed 2026-07-30)
 
 - **Target version**: v1.2.0
 - **Dual-pyramid domain**: Skills vs Scripts (§3), Loop Engineering — script curing loop (§6)

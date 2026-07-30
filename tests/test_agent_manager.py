@@ -1135,5 +1135,20 @@ class SubgraphTests(unittest.TestCase):
             self.assertIn("a.s1", node_ids)
 
 
+class SandboxModeTests(unittest.TestCase):
+    def test_sandbox_mode_enum_defined(self):
+        from agent_manager.sandbox import SandboxMode
+        self.assertEqual(SandboxMode.IN_PROCESS.value, "in_process")
+        self.assertEqual(SandboxMode.SUBPROCESS.value, "subprocess")
+
+    def test_sandbox_subprocess_replays(self):
+        from agent_manager.sandbox import SandboxMode, ScriptSandbox
+        import tempfile
+        candidate = {"operation": "summarize", "id": "test.script", "kind": "script", "status": "candidate", "registry_mutated": False, "success_rate": 0.5}
+        result = ScriptSandbox().replay(candidate, [], mode=SandboxMode.SUBPROCESS)
+        self.assertEqual(result.status, "failed")
+        self.assertFalse(result.registry_mutated)
+
+
 if __name__ == "__main__":
     unittest.main()
