@@ -188,7 +188,7 @@
 - **Dependencies**: `recorder.py` trace JSON schema, `adapter.py` CLI integration.
 - **Estimated complexity**: ⭐⭐ (1 new module, ~250 lines)
 
-#### [ ] 6. Subgraph nesting and reuse: composite graph nodes
+#### [x] 6. Subgraph nesting and reuse: composite graph nodes (completed 2026-07-30)
 
 - **Target version**: v1.2.0
 - **Dual-pyramid domain**: Graph Engineering (§7)

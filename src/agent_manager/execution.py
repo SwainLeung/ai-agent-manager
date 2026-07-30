@@ -107,7 +107,7 @@ class GraphScheduler:
         graph.assert_valid()
         if max_steps < 1:
             raise ValueError("max_steps must be at least 1")
-        self.graph = graph
+        self.graph = graph.expand()
         self.handlers = dict(handlers or {})
         self.recorder = recorder or ExecutionRecorder(graph_id=graph.graph_id)
         self.retry_policy = retry_policy or RetryPolicy()

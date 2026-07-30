@@ -1093,5 +1093,47 @@ class LifecycleFixTests(unittest.TestCase):
         self.assertTrue(any("lifecycle-stall" in f["reason"] for f in fixes))
 
 
+
+class SubgraphTests(unittest.TestCase):
+    def test_validate_detects_missing_subgraph_id(self):
+        from agent_manager.graph import GraphDefinition
+        value = {
+            "graph_id": "parent", "version": "1.0", "start": "a",
+            "nodes": [{"id": "a", "kind": "subgraph"}],
+            "edges": []
+        }
+        g = GraphDefinition(**value)
+        errors = g.validate()
+        self.assertTrue(any("subgraph_id" in e for e in errors))
+
+    def test_expand_passthrough_no_subgraph(self):
+        from agent_manager.graph import GraphDefinition
+        g = GraphDefinition(**{"graph_id": "simple", "version": "1.0", "start": "a", "nodes": [{"id": "a"}], "edges": []})
+        expanded = g.expand()
+        self.assertEqual(len(expanded.nodes), 1)
+        self.assertEqual(expanded.graph_id, "simple")
+
+    def test_expand_with_subgraph(self):
+        import tempfile, json, os
+        from agent_manager.graph import GraphDefinition
+        with tempfile.TemporaryDirectory() as d:
+            sub_path = os.path.join(d, "sub.json")
+            json.dump({"id": "sub", "version": "1.0", "start": "s1", "nodes": [{"id": "s1"}], "edges": []}, open(sub_path, "w"))
+            parent = {
+                "id": "parent", "version": "1.0", "start": "a",
+                "nodes": [
+                    {"id": "a", "kind": "subgraph", "subgraph_id": "sub"},
+                ],
+                "edges": []
+            }
+            parent_path = os.path.join(d, "parent.json")
+            json.dump(parent, open(parent_path, "w"))
+            loaded = GraphDefinition.load(parent_path)
+            expanded = loaded.expand(base_path=d)
+            self.assertGreater(len(expanded.nodes), 0)
+            node_ids = [n["id"] for n in expanded.nodes]
+            self.assertIn("a.s1", node_ids)
+
+
 if __name__ == "__main__":
     unittest.main()
