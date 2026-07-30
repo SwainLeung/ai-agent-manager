@@ -92,7 +92,6 @@
 - [x] Add entity-level Skills-vs-Scripts decision proposals with human gates.
 - [ ] Connect private FlowUs entity batches to `adapter decide` and review promotion candidates.
 - [x] Execute a shadow batch through ProposalExecutor without registry mutation.
-- [ ] Add reviewed promotion ledger for repeated Script success.
 - [x] Add reviewed promotion ledger for repeated Script success.
 - [x] Add separate versioned registry-apply workflow after promotion review.
 - [x] Add exact-diff approval manifest and rollback/undo for reviewed registry apply.

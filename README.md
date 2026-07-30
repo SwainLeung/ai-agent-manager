@@ -32,6 +32,10 @@ python scripts/agent-manager.py adapter rules review --rule-id project-correctio
 python scripts/agent-manager.py adapter solidify --skill-id domain.report-synthesis --records .agent-manager/records.json --operation summarize
 python scripts/agent-manager.py adapter sandbox --candidate-file .agent-manager/solidification/report.json --entity-file .agent-manager/fixtures.json
 python scripts/agent-manager.py audit
+python scripts/agent-manager.py adapter change propose --candidate-file .agent-manager/solidification/report.json --proposal-file .agent-manager/proposal.json
+python scripts/agent-manager.py adapter change approve --proposal-file .agent-manager/proposal.json --note "reviewed"
+python scripts/agent-manager.py adapter change apply --proposal-file .agent-manager/proposal.json --write
+python scripts/agent-manager.py adapter change rollback --proposal-file .agent-manager/proposal.json --write
 python -m unittest discover -s tests -v
 ```
 
@@ -56,7 +60,7 @@ The original working notes are kept locally under `theory txt/` and ignored from
 - Graphs over hidden chains: nodes, edges, fallbacks, and checkpoints are inspectable.
 - Every mutation is observable: record version, source, decision, and outcome.
 
-## Runtime execution in v0.2.0
+## Runtime execution
 
 The scheduler executes validated graphs with deterministic handlers or application-provided handlers. Each run supports:
 

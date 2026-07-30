@@ -484,7 +484,7 @@ graph TB
 
 ## 10. 推送前待办清单
 
-从 CHECKLIST.md 和实际状态出发，推送到远程前建议完成：
+从 CHECKLIST.md 和实际状态出发，已完成推送：
 
 ### 必须完成
 
@@ -496,9 +496,9 @@ graph TB
 
 ### 建议补充（推送前）
 
-- [ ] `.gitignore` 确认包含 `theory txt/`、`__pycache__`、`*.pyc`
-- [ ] `LICENSE` 文件确认正确（当前未读取，建议 MIT）
-- [ ] 在 CHANGELOG.md 中补全 [Unreleased] 占位说明
+- [x] `.gitignore` 确认包含 `theory txt/`、`__pycache__`、`*.pyc`
+- [x] `LICENSE` 文件确认 MIT 格式正确
+- [x] CHANGELOG.md 已补全 v1.0.0 发布说明
 
 ### 推送后可继续的增强方向
 

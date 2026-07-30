@@ -1,8 +1,11 @@
 # Changelog
 
-## [0.9.0] - Unreleased
+## [1.0.0] - 2026-07-30
 
 - Added deterministic `ScriptSandbox` replay for candidate Scripts with fixture filtering, success-rate drift detection, and side-effect/provider/registry safeguards.
+- Added `RegistryChangeWorkflow` with propose-approve-apply-rollback pipeline for controlled registry mutations.
+- Added `adapter change propose/approve/apply/rollback` CLI with SHA-256 checksums, preview, backup, and human-review gates.
+- Upgraded project version to 1.0.0 with 55 passing tests.
 - Added `adapter sandbox` CLI and regression coverage for successful and failed candidate replays.
 
 ## [0.8.0] - 2026-07-30
