@@ -107,8 +107,9 @@ class LocalAgentAdapter:
         *,
         checkpoint: str | Path | None = None,
         max_items: int | None = None,
+        checkpoint_every: int = 100,
     ) -> dict[str, Any]:
-        return self.proposal_executor.execute_entities(entities, checkpoint=checkpoint, max_items=max_items)
+        return self.proposal_executor.execute_entities(entities, checkpoint=checkpoint, max_items=max_items, checkpoint_every=checkpoint_every)
 
     def propose_promotions(
         self,

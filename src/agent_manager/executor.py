@@ -107,7 +107,10 @@ class ProposalExecutor:
         *,
         checkpoint: str | Path | None = None,
         max_items: int | None = None,
+        checkpoint_every: int = 100,
     ) -> dict[str, Any]:
+        if checkpoint_every < 1:
+            raise ValueError("checkpoint_every must be at least 1")
         entity_fingerprint = _entity_fingerprint(entities)
         plan = self.matrix.decide_many(entities)
         proposals = [ExecutionProposal(**item) for item in plan["proposals"]]
@@ -129,12 +132,18 @@ class ProposalExecutor:
             entity = entity_by_id.get(proposal.subject_id, {})
             records.append(self.execute(entity, proposal))
             index += 1
-            if checkpoint_path:
+            if checkpoint_path and index % checkpoint_every == 0 and index != limit:
                 checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-                checkpoint_path.write_text(json.dumps({"schema_version": 2, "status": "running", "proposal_count": len(proposals), "entity_fingerprint": entity_fingerprint, "next_index": index, "records": [item.to_dict() for item in records]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                state = {"schema_version": 2, "status": "running", "proposal_count": len(proposals), "entity_fingerprint": entity_fingerprint, "next_index": index, "records": [item.to_dict() for item in records]}
+                tmp = checkpoint_path.with_suffix(checkpoint_path.suffix + ".tmp")
+                tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                tmp.replace(checkpoint_path)
         status = "completed" if index >= len(proposals) else "paused"
         if checkpoint_path:
-            checkpoint_path.write_text(json.dumps({"schema_version": 2, "status": status, "proposal_count": len(proposals), "entity_fingerprint": entity_fingerprint, "next_index": index, "records": [item.to_dict() for item in records]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            state = {"schema_version": 2, "status": status, "proposal_count": len(proposals), "entity_fingerprint": entity_fingerprint, "next_index": index, "records": [item.to_dict() for item in records]}
+            tmp = checkpoint_path.with_suffix(checkpoint_path.suffix + ".tmp")
+            tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            tmp.replace(checkpoint_path)
         status_counts = {status: sum(1 for item in records if item.status == status) for status in ("completed", "pending", "failed")}
         kind_counts = {kind: sum(1 for item in records if item.kind == kind) for kind in ("script", "skill", "human_review")}
         return {

@@ -47,6 +47,11 @@
 - 2026-07-29: PromotionLedger schema v2 deduplicates repeated evidence by stable key and preserves cumulative candidate statistics across reloads.
 - 2026-07-29: adapter entity manifests validate declared counts and reject checkpoint resume against a changed input fingerprint.
 - 2026-07-29: real local FlowUs v3 manifest smoke test covered 8,169 entities, 62,070 proposals, and two resumable 100-proposal chunks without writeback.
+- 2026-07-29: full local FlowUs v3 execution completed 62,070/62,070 proposals with 21,839 Script completions, 40,231 gated pending records, 0 failures, and 250-item atomic checkpoints.
+- 2026-07-29: full-batch promotion proposal generated four Script candidates; no registry mutation occurred.
+- 2026-07-30: segmented checkpoint regression and interval validation coverage passed; full suite now has 36 passing tests.
+- 2026-07-30: read-only local FlowUs file audit ran against 16 assets and produced 107 findings; no merge or delete mutation occurred.
+- 2026-07-30: rebuilt eight granite.wiki derived files from normalized pipeline outputs, archived the prior versions, and reduced actionable stale/drift/duplicate findings to zero; 92 provenance/reference findings remain.
 
 ## Gradual local-agent adoption
 

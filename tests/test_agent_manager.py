@@ -2,13 +2,16 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
+from datetime import datetime, timezone
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.decision import DecisionMatrix
 from agent_manager.executor import ProposalExecutor
+from agent_manager.file_audit import run_local_audit
 from agent_manager.promotion import PromotionLedger
 from agent_manager.registry_apply import RegistryApplyError, RegistryApplier
 from agent_manager.entropy import audit
@@ -116,6 +119,31 @@ class AgentManagerTests(unittest.TestCase):
             resumed = ProposalExecutor().execute_entities(entities, checkpoint=checkpoint)
             self.assertEqual(resumed["status"], "completed")
             self.assertEqual(resumed["processed"], 2)
+
+    def test_proposal_executor_checkpoints_at_configured_segments(self):
+        entities = [
+            {"entity_id": str(index), "operation": "duplicate_key", "title": str(index), "confidence": 0.99}
+            for index in range(5)
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "proposal-checkpoint.json"
+            write_count = 0
+            original_write_text = Path.write_text
+
+            def counted_write_text(path, data, *args, **kwargs):
+                nonlocal write_count
+                write_count += 1
+                return original_write_text(path, data, *args, **kwargs)
+
+            with mock.patch.object(Path, "write_text", new=counted_write_text):
+                result = ProposalExecutor().execute_entities(entities, checkpoint=checkpoint, checkpoint_every=2)
+            self.assertEqual(result["status"], "completed")
+            self.assertEqual(write_count, 3)
+            self.assertEqual(json.loads(checkpoint.read_text(encoding="utf-8"))["next_index"], 5)
+
+    def test_proposal_executor_rejects_invalid_checkpoint_interval(self):
+        with self.assertRaisesRegex(ValueError, "checkpoint_every must be at least 1"):
+            ProposalExecutor().execute_entities([], checkpoint_every=0)
 
     def test_proposal_executor_rejects_checkpoint_for_different_manifest(self):
         entities = [
@@ -350,6 +378,32 @@ class AgentManagerTests(unittest.TestCase):
         codes = {finding.code for finding in findings}
         self.assertIn("low-success", codes)
         self.assertIn("duplicate-signature", codes)
+
+    def test_local_file_audit_is_read_only_and_reports_entropy_candidates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "entities"
+            output = Path(directory) / "reports"
+            root.mkdir()
+            (root / "one.md").write_text(
+                "---\ntitle: One\nowner: team\nlast_scraped: 2026-07-01\n---\n# One\n\n[Missing](missing.md)\n",
+                encoding="utf-8",
+            )
+            (root / "copy.md").write_text((root / "one.md").read_text(encoding="utf-8"), encoding="utf-8")
+            (root / "one-copy.md").write_text("---\ntitle: One\nlast_scraped: 2026-07-01\n---\n# One\n\nDifferent body\n", encoding="utf-8")
+            (root / "derived.json").write_text('{"generated_at":"2026-07-01T00:00:00Z"}\n', encoding="utf-8")
+            result = run_local_audit(root, output, stale_days=2, now=datetime(2026, 7, 10, tzinfo=timezone.utc))
+            codes = {finding["code"] for finding in result["findings"]}
+            self.assertIn("stale", codes)
+            self.assertIn("exact-duplicate", codes)
+            self.assertIn("normalized-duplicate", codes)
+            self.assertIn("unowned", codes)
+            self.assertIn("unresolved-reference", codes)
+            self.assertFalse(result["mutation_performed"])
+            self.assertTrue((output / "flowus-local-manifest.json").exists())
+            self.assertTrue((output / "flowus-anti-entropy-report.json").exists())
+            self.assertTrue((output / "flowus-merge-candidates.json").exists())
+            self.assertTrue((output / "flowus-delete-candidates.json").exists())
+            self.assertTrue((root / "one.md").exists())
 
     def test_graph_rejects_missing_edge_target(self):
         value = {"id": "bad", "start": "a", "nodes": [{"id": "a"}], "edges": [{"from": "a", "to": "b"}]}

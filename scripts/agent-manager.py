@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from agent_manager.entropy import audit
 from agent_manager.adapter import LocalAgentAdapter
+from agent_manager.file_audit import run_local_audit
 from agent_manager.execution import GraphScheduler, RetryPolicy
 from agent_manager.graph import GraphDefinition
 from agent_manager.lifecycle import propose
@@ -183,7 +184,7 @@ def cmd_adapter_decide(args: argparse.Namespace) -> int:
 
 def cmd_adapter_execute(args: argparse.Namespace) -> int:
     entities = load_entity_file(args.entity_file)
-    result = adapter_from_args(args).execute_entities(entities, checkpoint=args.checkpoint, max_items=args.max_items)
+    result = adapter_from_args(args).execute_entities(entities, checkpoint=args.checkpoint, max_items=args.max_items, checkpoint_every=args.checkpoint_every)
     if args.summary_only:
         result = {key: value for key, value in result.items() if key != "records"}
     print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -266,6 +267,12 @@ def cmd_adapter_report(args: argparse.Namespace) -> int:
         adapter_from_args(args).save_report(args.output)
         report["report"] = str(args.output)
     print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_audit_files(args: argparse.Namespace) -> int:
+    result = run_local_audit(args.root, args.output_dir, stale_days=args.stale_days)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -360,6 +367,7 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--entity-file", required=True, type=Path)
     execute.add_argument("--checkpoint", type=Path)
     execute.add_argument("--max-items", type=int)
+    execute.add_argument("--checkpoint-every", type=int, default=100)
     execute.add_argument("--summary-only", action="store_true")
     execute.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     execute.set_defaults(func=cmd_adapter_execute)
@@ -418,6 +426,12 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--output", type=Path)
     report.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     report.set_defaults(func=cmd_adapter_report)
+
+    audit_files = adapter_sub.add_parser("audit-files")
+    audit_files.add_argument("--root", required=True, type=Path)
+    audit_files.add_argument("--output-dir", required=True, type=Path)
+    audit_files.add_argument("--stale-days", type=float, default=2.0)
+    audit_files.set_defaults(func=cmd_adapter_audit_files)
 
     audit_command = sub.add_parser("audit")
     audit_command.set_defaults(func=cmd_audit)

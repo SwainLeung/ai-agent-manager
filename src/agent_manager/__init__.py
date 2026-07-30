@@ -10,6 +10,7 @@ from .execution import ExecutionContext, GraphExecutionError, GraphScheduler, No
 from .recorder import ExecutionRecorder, TraceEvent
 from .registry import SkillRegistry
 from .router import Router
+from .file_audit import run_local_audit
 
 __all__ = [
     "ExecutionContext",
@@ -36,4 +37,5 @@ __all__ = [
     "Router",
     "SkillRegistry",
     "TraceEvent",
+    "run_local_audit",
 ]

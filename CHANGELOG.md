@@ -14,6 +14,8 @@
 - Added CLI and contract coverage for the complete promotion transaction: plan, approve, dry-run, apply, and rollback.
 - Upgraded PromotionLedger to schema v2 with cross-run evidence persistence, stable-key deduplication, and latest-status success-rate tracking.
 - Added manifest-aware batch execution with declared-count validation and SHA-256 input fingerprints in resumable checkpoints.
+- Added segmented atomic checkpoint writes for large proposal batches, avoiding per-proposal O(n²) checkpoint I/O.
+- Added read-only local file Anti-entropy audit with provenance, freshness, duplicate, ownership, reference-integrity, merge-candidate, and delete-candidate reports.
 
 ## [0.2.4] - 2026-07-29
 

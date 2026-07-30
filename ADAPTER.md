@@ -81,8 +81,27 @@ Execution is intentionally gated:
 - Skill proposals remain `pending` for the host Agent;
 - human-review proposals remain `pending` for approval;
 - execution checkpoints can pause and resume by proposal index;
+- large batches checkpoint atomically in configurable segments (`--checkpoint-every`, default 100);
 - checkpoints bind to an input entity fingerprint and reject a different manifest;
 - no execution result automatically changes the registry.
+
+For local FlowUs or knowledge-vault files, use the read-only file audit before
+any merge, quarantine, or delete workflow:
+
+```powershell
+python scripts/agent-manager.py adapter audit-files `
+  --root D:\path\to\vault\wiki-entities `
+  --output-dir D:\path\to\reports\flowus-anti-entropy `
+  --stale-days 2
+```
+
+The audit writes `flowus-local-manifest.json`,
+`flowus-anti-entropy-report.json`, `flowus-merge-candidates.json`, and
+`flowus-delete-candidates.json`. It only scans and reports; it does not merge,
+quarantine, delete, or write to FlowUs. Source freshness uses source
+verification/scrape timestamps when present. A local `last_modified` value is
+not treated as source freshness; missing source timestamps produce a
+`freshness-unknown` finding.
 
 Promotion is a separate reversible ledger:
 
