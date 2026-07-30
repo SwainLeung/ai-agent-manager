@@ -1,9 +1,9 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 复核日期：2026-07-30
-> 项目版本：0.8.0.dev0
-> 测试通过：52/52 单元测试通过，public-check 通过
-> Git 状态：`main` 已与 `origin/main` 同步；运行态仍保存在被忽略的 `.agent-manager/`
+> 项目版本：0.9.0.dev0
+> 测试通过：54/54 单元测试通过，public-check 通过
+> Git 状态：0.9.0 开发变更在工作区，尚未提交；运行态仍保存在被忽略的 `.agent-manager/`
 
 ---
 
@@ -14,7 +14,7 @@
 - `src/agent_manager/execution.py` 提供 Graph Scheduler、ExecutionContext、retry、fallback、checkpoint 和 max-step 保护。
 - `src/agent_manager/recorder.py` 提供结构化 JSON trace，记录 run、node、failure、checkpoint 和 completion 事件。
 - CLI 新增 `graph run` 与 `trace show`。
-- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 52 个单元测试通过。
+- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 54 个单元测试通过。
 
 早期 v0.2 阶段尚未实现自动反思、规则蒸馏和 Skill→Script 固化；截至 v0.8.0，反馈元认知、审核式规则候选和 Skill→Script 候选生成均已具备，自动写回 Registry 仍保留人工门。
 
@@ -82,6 +82,12 @@
 - 新增 `adapter solidify` CLI，支持从执行记录或 checkpoint 对象生成候选 descriptor。
 - 候选包含来源 Skill、版本、证据数量、成功率和审核要求，并固定为 `status=candidate`、`registry_mutated=false`、`review_required=true`。
 - 生成流程只输出候选，不自动写入 Registry；完整测试达到 52 个，public-check 通过。
+
+### v0.9.0 Script Sandbox 增量
+
+- 新增 `ScriptSandbox`，对 `status=candidate` 的 Script descriptor 做确定性 fixture replay。
+- 新增成功率 drift 检测、operation fixture 过滤，以及 `registry_mutated=false`、`external_effects=false`、`provider_calls=0` 保护。
+- 新增 `adapter sandbox` CLI；成功/失败 replay 和 mutated candidate 拒绝均有回归测试。
 
 ---
 
@@ -279,7 +285,7 @@
 | **2. 脚本固化闭环** | | | |
 | - 稳定性评估（lifecycle.propose） | `lifecycle.py` | **100%** | 基于调用量和成功率 |
 | - Skill→Script 生成 | `solidification.py` `adapter.py` | **80%** | 按 evidence threshold 生成 candidate descriptor，不自动写回 |
-| - 沙箱回归测试 | `tests/test_agent_manager.py` + CLI smoke | **50%** | 单元/CLI 隔离验证已完成，真实沙箱执行仍未实现 |
+| - 沙箱回归测试 | `sandbox.py` + `tests/test_agent_manager.py` | **85%** | 确定性 fixture replay、失败报告、drift 与 mutated candidate 拒绝已实现；OS 级隔离仍未实现 |
 | - Script 注册与路由更新 | `registry.py` 已支持注册 | **50%** | 注册表支持，但自动更新无 |
 | **3. 用户自适应闭环** | | | |
 | - 反馈事件存储 | `feedback.py` | **100%** | 完整实现 |
@@ -343,12 +349,12 @@
 |--------|----------|----------|----------|----------|-----------|
 | ① 双金字塔 | ✅ | ✅ | ✅ | ✅ | **75%** — 数据模型完整，自动升级有，但长尾流水线和冷热淘汰无 |
 | ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **80%** — 生命周期、promotion、registry apply/rollback 已有，自动修复和灰度发布仍缺 |
-| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **90%** — 决策矩阵、执行器、人工门控和 Skill→Script 候选固化已有，自动注册和沙箱执行仍缺 |
+| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **93%** — 决策矩阵、执行器、候选固化和确定性沙箱回放已有，自动注册和 OS 级隔离仍缺 |
 | ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **92%** — 截获、反思、候选蒸馏、审核启用和撤销已有，provider prompt 应用仍由 host 负责 |
 | ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **70%** — registry、usage metrics 与本地文件只读审计已有，自动清理/压缩仍缺 |
 | ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **84%** — 执行、恢复、计量、门控、反馈、规则审核和候选固化闭环已有，自动注册与清理仍缺 |
 | ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
-| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 52 测试 ✅ | **~88%（阶段性估算）** |
+| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 54 测试 ✅ | **~90%（阶段性估算）** |
 
 ### 按代码量估算
 
@@ -358,10 +364,10 @@
 | 文档蒸馏（公开） | 7 | ✅ 完成 |
 | 核心 Python 模块 | 18+ | ✅ 路由、图执行、反馈、元认知、规则审核、Skill→Script 候选固化、实体执行、promotion、registry apply、文件审计、usage metrics、provider/tool boundary 可运行 |
 | CLI 脚本 | 2 | ✅ registry/route/graph/trace/adapter/audit/lifecycle 等命令可用 |
-| 单元测试 | 1（含52个测试） | ✅ 全部通过 |
+| 单元测试 | 1（含54个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
-| Git 提交 | 已初始化 | ✅ 0.7.0/0.8.0 功能提交已推送；本报告同步后随修正提交推送 |
+| Git 提交 | 已初始化 | ✅ 0.7.0/0.8.0 功能提交与报告同步已推送；0.9.0 开发变更待提交 |
 
 ---
 
@@ -494,7 +500,7 @@ graph TB
 | 🔴 P0 | 运行时 Skill.calls/successes 计量 | 100% |
 | 🔴 P0 | Provider/Tool contract + mock/dry-run | 100% |
 | 🔴 P0 | Provider-specific production adapter | 0% |
-| 🟡 P1 | Skill→Script 自动注册、沙箱执行与回滚 | 30% |
+| 🟡 P1 | Skill→Script 自动注册、OS 级隔离与回滚 | 55% |
 | 🟡 P1 | Feedback Interceptor + Reflector + RuleDistiller | 100% |
 | 🟡 P1 | Profile/Project 规则 host 应用与策略编排 | 80% |
 | 🟢 P2 | 记忆压缩与 TTL 清理 | 0% |
@@ -504,4 +510,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager 0.8.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界、反馈元认知、审核式规则管理和 Skill→Script 候选固化的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、GovernedRule/RuleStore、SkillScriptCompiler、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前重点是 provider-specific production adapter、候选 Script 的沙箱回归/自动注册与回滚、host 侧规则应用、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 0.9.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界、反馈元认知、审核式规则管理、Skill→Script 候选固化和确定性沙箱回放的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、GovernedRule/RuleStore、SkillScriptCompiler、ScriptSandbox、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前重点是 provider-specific production adapter、候选 Script 的自动注册与回滚、OS 级隔离、host 侧规则应用、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。

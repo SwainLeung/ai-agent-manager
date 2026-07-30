@@ -18,6 +18,7 @@ from .tooling import CallableToolAdapter, DryRunToolAdapter, EffectGate, Externa
 from .metacognition import FeedbackInterceptor, MetaCognitionEngine, ReflectionHypothesis, RuleCandidate, Reflector, RuleDistiller
 from .rules import GovernedRule, RuleStore
 from .solidification import ScriptCandidate, SkillScriptCompiler, SolidificationError, SolidificationReport
+from .sandbox import SandboxError, SandboxReport, ScriptSandbox
 
 __all__ = [
     "ExecutionContext",
@@ -71,4 +72,7 @@ __all__ = [
     "SkillScriptCompiler",
     "SolidificationError",
     "SolidificationReport",
+    "SandboxError",
+    "SandboxReport",
+    "ScriptSandbox",
 ]

@@ -258,6 +258,22 @@ def cmd_adapter_solidify(args: argparse.Namespace) -> int:
     return 0 if result["eligible"] else 1
 
 
+def cmd_adapter_sandbox(args: argparse.Namespace) -> int:
+    candidate = json.loads(args.candidate_file.read_text(encoding="utf-8-sig"))
+    entities = load_entity_file(args.entity_file)
+    result = adapter_from_args(args).sandbox_script(
+        candidate,
+        entities,
+        drift_tolerance=args.drift_tolerance,
+    )
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        result["output"] = str(args.output)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] == "passed" else 1
+
+
 def cmd_adapter_promote_propose(args: argparse.Namespace) -> int:
     payload = json.loads(args.checkpoint.read_text(encoding="utf-8-sig"))
     records = payload.get("records", []) if isinstance(payload, dict) else payload
@@ -499,6 +515,14 @@ def build_parser() -> argparse.ArgumentParser:
     solidify.add_argument("--output", type=Path)
     solidify.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     solidify.set_defaults(func=cmd_adapter_solidify)
+
+    sandbox = adapter_sub.add_parser("sandbox")
+    sandbox.add_argument("--candidate-file", required=True, type=Path)
+    sandbox.add_argument("--entity-file", required=True, type=Path)
+    sandbox.add_argument("--drift-tolerance", type=float, default=0.05)
+    sandbox.add_argument("--output", type=Path)
+    sandbox.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    sandbox.set_defaults(func=cmd_adapter_sandbox)
 
     promote = adapter_sub.add_parser("promote")
     promote_sub = promote.add_subparsers(dest="promote_command", required=True)

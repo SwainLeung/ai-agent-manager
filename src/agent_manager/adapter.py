@@ -21,6 +21,7 @@ from .recorder import ExecutionRecorder
 from .registry import SkillRegistry
 from .rules import RuleStore
 from .router import RouteSignals, Router
+from .sandbox import ScriptSandbox
 from .solidification import SkillScriptCompiler
 
 
@@ -282,6 +283,15 @@ class LocalAgentAdapter:
             min_success_rate=min_success_rate,
         ).compile(source, records, operation=operation)
         return report.to_dict()
+
+    def sandbox_script(
+        self,
+        candidate: Mapping[str, Any],
+        entities: list[Mapping[str, Any]],
+        *,
+        drift_tolerance: float = 0.05,
+    ) -> dict[str, Any]:
+        return ScriptSandbox().replay(candidate, entities, drift_tolerance=drift_tolerance).to_dict()
 
     def report(self) -> dict[str, Any]:
         store = FeedbackStore.load(self.feedback_path)

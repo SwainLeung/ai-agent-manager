@@ -30,6 +30,7 @@ from agent_manager.registry import RegistryError, SkillRegistry
 from agent_manager.router import RouteSignals, Router
 from agent_manager.rules import GovernedRule, RuleStore
 from agent_manager.solidification import SkillScriptCompiler, SolidificationError
+from agent_manager.sandbox import SandboxError, ScriptSandbox
 
 
 def skill(**overrides):
@@ -731,6 +732,47 @@ class AgentManagerTests(unittest.TestCase):
                 [],
                 operation="summarize",
             )
+
+    def test_script_sandbox_replays_candidate_without_side_effects(self):
+        candidate = {
+            "id": "project.snapshot.script.snapshot_hash",
+            "kind": "script",
+            "status": "candidate",
+            "operation": "snapshot_hash",
+            "success_rate": 1.0,
+            "registry_mutated": False,
+        }
+        entities = [
+            {"entity_id": "one", "operation": "snapshot_hash", "content": "alpha"},
+            {"entity_id": "two", "operation": "snapshot_hash", "content": "beta"},
+            {"entity_id": "skip", "operation": "summarize", "content": "ignored"},
+        ]
+        report = ScriptSandbox().replay(candidate, entities)
+        self.assertEqual(report.status, "passed")
+        self.assertEqual(report.processed, 2)
+        self.assertEqual(report.skipped, 1)
+        self.assertFalse(report.registry_mutated)
+        self.assertFalse(report.external_effects)
+        self.assertEqual(report.provider_calls, 0)
+
+    def test_script_sandbox_reports_replay_failure_and_rejects_mutated_candidate(self):
+        candidate = {
+            "id": "project.frontmatter.script.frontmatter_validate",
+            "kind": "script",
+            "status": "candidate",
+            "operation": "frontmatter_validate",
+            "success_rate": 1.0,
+            "registry_mutated": False,
+        }
+        report = ScriptSandbox().replay(
+            candidate,
+            [{"entity_id": "bad", "operation": "frontmatter_validate", "required_fields": ["title"]}],
+        )
+        self.assertEqual(report.status, "failed")
+        self.assertIn("replay-failure", report.reasons)
+        candidate["registry_mutated"] = True
+        with self.assertRaises(SandboxError):
+            ScriptSandbox().replay(candidate, [])
 
     def test_adapter_report_exposes_runtime_metrics_and_projected_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:

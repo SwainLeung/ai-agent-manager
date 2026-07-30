@@ -182,3 +182,16 @@ python scripts/agent-manager.py adapter solidify `
 The compiler requires minimum success evidence and emits a descriptor with
 `status=candidate`, `registry_mutated=false`, and `review_required=true`. It
 does not write the public registry or make a Skill executable automatically.
+
+Replay a candidate against deterministic fixtures before any review/apply step:
+
+```powershell
+python scripts/agent-manager.py adapter sandbox `
+  --candidate-file .agent-manager/solidification/report.json `
+  --entity-file .agent-manager/fixtures.json `
+  --output .agent-manager/solidification/sandbox.json
+```
+
+The sandbox uses built-in deterministic handlers only. It reports skipped
+fixtures, completed/failed cases, success-rate drift, and keeps
+`registry_mutated=false`, `external_effects=false`, and `provider_calls=0`.

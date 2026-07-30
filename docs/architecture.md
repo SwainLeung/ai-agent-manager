@@ -31,6 +31,7 @@ task
 - `adapter.py`: bridges a local agent into routing, graph execution, feedback, and improvement reports.
 - `rules.py`: stores reviewed Profile/Project rules and exposes only explicitly enabled rules to adapter plans.
 - `solidification.py`: compiles repeated Skill evidence into candidate Script descriptors without mutating the registry.
+- `sandbox.py`: replays candidate Scripts against deterministic fixtures with drift and side-effect safeguards.
 - `entropy.py`: finds lifecycle stalls, low-success capabilities, and duplicate
   signatures.
 

@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.8.0] - Unreleased
+## [0.9.0] - Unreleased
+
+- Added deterministic `ScriptSandbox` replay for candidate Scripts with fixture filtering, success-rate drift detection, and side-effect/provider/registry safeguards.
+- Added `adapter sandbox` CLI and regression coverage for successful and failed candidate replays.
+
+## [0.8.0] - 2026-07-30
 
 - Changed max-step interruption from terminal `failed` to resumable `paused`.
 - Preserved `next_node` in paused checkpoints and added regression coverage for CLI/API resume.

@@ -35,6 +35,10 @@
       "input": {"skill_id": "existing Skill id", "records": "execution record array or checkpoint object", "operation": "deterministic operation", "min_successes": "integer >= 1", "min_success_rate": "0..1"},
       "output": {"eligible": "boolean", "candidate": "optional Script descriptor", "registry_mutated": "false", "review_required": "true"}
     },
+    "sandbox": {
+      "input": {"candidate_file": "candidate Script descriptor or solidify report", "entity_file": "fixture entity array or manifest", "drift_tolerance": "0..1"},
+      "output": {"status": "passed|failed", "cases": "deterministic replay records", "registry_mutated": "false", "external_effects": "false", "provider_calls": "0"}
+    },
     "audit_files": {
       "input": {"root": "local directory", "output_dir": "report directory", "stale_days": "number >= 0, default 2"},
       "output": {"manifest": "flowus-local-manifest.json", "report": "flowus-anti-entropy-report.json", "merge_candidates": "flowus-merge-candidates.json", "delete_candidates": "flowus-delete-candidates.json", "mutation_performed": "false"}
