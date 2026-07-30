@@ -1,9 +1,9 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 复核日期：2026-07-30
-> 项目版本：1.0.0
-> 测试通过：54/54 单元测试通过，public-check 通过
-> Git 状态：v1.0.0 已发布推送；运行态仍保存在被忽略的 `.agent-manager/`
+> 项目版本：3.0.0
+> 测试通过：90/90 单元测试通过，public-check 通过
+> Git 状态：v3.0.0 已发布推送；运行态仍保存在被忽略的 `.agent-manager/`
 
 ---
 
@@ -113,6 +113,41 @@
 - 完整测试达到 54 个，覆盖人工审批拒绝、dry-run、write 和 rollback。
 
 ---
+
+
+### v1.1.0 P0 Backlog 增量
+
+- 新增 visualization.py，trace 事件 → DOT/Mermaid 图格式输出；支持 --graph-kinds 节点形状映射，失败节点红色高亮。
+- 新增 trace viz CLI 子命令；adapter pitfall list/show 对 pitfall 事件去重计数和详情查询。
+- 新增 adapter report --slim 将 entropy audit 发现分类输出结构化的瘦身报告。
+- P0 完整度：图可视化、Pitfall 知识库、Slim 报告三项全部完成；测试达到 65 个。
+
+### v1.2.0 P1 Backlog 增量
+
+- **断路器**：execution.py 新增 CircuitBreakerPolicy，按 max_consecutive_failures 在 GraphScheduler._execute_node() 中熔断保护。
+- **错误分析器**：analyzer.py 分析 trace 事件，输出节点级失败统计、错误分布和 Top-10 错误排名。
+- **提示词模板注册**：prompt_registry.py 版本化管理提示词模板，支持 add/list/diff CLI。
+- **子图嵌套**：graph.py 新增 expand() 方法展开 kind: subgraph 节点，GraphScheduler 自动展开图。
+- **自动修复提案**：lifecycle.py 新增 propose_fixes()，对 degraded/stalled 技能生成 RegistryChangeProposal 候选。
+- **OS 级沙箱**：sandbox.py 新增 SandboxMode.SUBPROCESS，replay 在子进程中隔离执行。
+- P1 六项全部完成；测试达到 76 个。
+
+### v2.0.0 P2 Backlog 增量
+
+- **数据源健康检查**：health.py 支持 file/URL 类型检查，输出 ok/warning/fail 状态。
+- **临时文件垃圾回收**：cleanup.py 扫描 __pycache__ 等构建产物，支持 dry-run 和 --execute。
+- **冷热数据 TTL 淘汰**：registry.py 新增 TTLConfig 和 evict_expired()，按 frequency 层设置淘汰天数。
+- **规则记忆压缩**：rules.py 新增 compact_rules()，去重合并、矛盾检测、低置信度归档。
+- P2 四项全部完成；测试达到 84 个。
+
+### v3.0.0 P3 Backlog 增量
+
+- **动态图生成**：planner.py 通过 ProviderAdapter 将自然语言任务描述转化为可执行的 JSON GraphDefinition。
+- **金丝雀灰度发布**：canary.py 实现 CanaryStore，支持按百分比流量路由、promote/rollback。
+- **长尾技能自动生成**：skill_generator.py 分析 UsageLedger 和 FeedbackStore 数据，自动输出 candidate Skill 描述。
+- P3 三项全部完成；测试达到 90 个。
+
+---
 ---
 
 ## 1. 双金字塔模型 (Dual Pyramid)
@@ -143,8 +178,8 @@
 | 频次路由打分 | `router.py` frequency=hot 加 1 分 | **100%** | 代码已实现 |
 | 正/倒金字塔图形文档 | `docs/theory/01-dual-pyramid.md` | **100%** | 已输出简洁蒸馏文档 |
 | **自动频次升级（lifecycle → frequency）** | `lifecycle.py` `propose()` | **100%** | calls≥50 → hot; ≥10 → warm; else cold |
-| **缺失：冷热数据 TTL 淘汰策略** | 未实现 | **0%** | 理论提及但无代码 |
-| **缺失：长尾技能自动生成流水线** | 未实现 | **0%** | 理论提及 "动态组合、少样本示例" 但无实现 |
+| **冷热数据 TTL 淘汰策略** | `registry.py` `evict_expired()` + `TTLConfig` | **100%** | 按 cold/hot/warm 配置天数的淘汰检测 |
+| **长尾技能自动生成流水线** | `skill_generator.py` `suggest_skills()` | **80%** | 从 UsageLedger+FeedbackStore 分析输出 candidate Skill，自动写回 Registry 仍由人工门控 |
 
 ---
 
@@ -169,8 +204,8 @@
 | 生命周期状态迁移提案 | `lifecycle.py` `propose()` | **100%** | 基于 calls+success_rate 计算 proposed_status |
 | CLI 生命周期查看 | `scripts/agent-manager.py` `lifecycle` | **100%** | 已验证输出通过 |
 | 动态治理蒸馏文档 | `docs/theory/02-dynamic-governance.md` | **100%** | 已输出 |
-| 自动修复提案 → 版本测试闭环 | `ProposalExecutor` + 测试套件 | **60%** | 有确定性 Script 执行、checkpoint/resume 与回归测试；自动生成修复提案仍未实现 |
-| **缺失：金丝雀/灰度发布技能** | 未实现 | **0%** | 理论提及但无实现 |
+| 自动修复提案 → 版本测试闭环 | `lifecycle.propose_fixes()` + `ProposalExecutor` | **85%** | 自动检测 degraded/stalled 技能并生成 fix 候选；仍须人工审核 |
+| **金丝雀/灰度发布技能** | `canary.py` `CanaryStore` | **85%** | 按 percentage 路由新版本流量，支持 promote/rollback |
 | 技能/注册表版本回滚机制 | `registry_apply.py` + `registry_proposal.py` + manifest/rollback | **85%** | 已支持版本化 registry apply、proposal 核准、backup 保护和注册表层 rollback；Skill 实现级灰度回滚仍缺 |
 
 ---
@@ -198,7 +233,7 @@
 | 决策矩阵打分逻辑 | `router.py` `decide()` | **100%** | structured+deterministic 加分给 script；creative 加分给 skill |
 | CLI 路由测试 | `scripts/agent-manager.py` `route` | **100%** | 已验证，结构化任务倾向 script |
 | 决策矩阵蒸馏文档 | `docs/theory/03-skills-vs-scripts.md` | **100%** | 已输出 |
-| Skill → Script 受控固化闭环 | `solidification.py` + `sandbox.py` + `registry_proposal.py` | **80%** | 已实现 solidification 候选生成→sandbox 回放→proposal 核准→apply 写入的完整人工审核固化路径；自动注册仍由人工门控 |
+| Skill → Script 受控固化闭环 | `solidification.py` + `sandbox.py` + `registry_proposal.py` | **90%** | 已实现固态化+沙箱(IN_PROCESS/SUBPROCESS)+提案受控写入的固化路径；OS隔离通过SUBPROCESS模式完成 |
 | Script 失败回退 Skill 机制 | `execution.py` fallback + graph edges | **60%** | 图运行时支持 error-edge fallback；provider-specific Script→Skill 转换仍由 host 负责 |
 | **缺失：问题矩阵 Agent 内化自评判** | 未实现 | **0%** | 当前 Router 需外部传入 signals，非 Agent 内化 |
 
@@ -256,12 +291,12 @@
 | CLI 审计命令 | `scripts/agent-manager.py` `audit` | **100%** | 已验证，当前示例无发现 |
 | 审计蒸馏文档 | `docs/theory/05-anti-entropy.md` | **100%** | 已输出 |
 | 上下文 Token 预算制 | registry 占位 + host contract | **10%** | 公共控制面不管理 provider token，仍需 host/provider 侧实现 |
-| **缺失：记忆合并与修剪** | 未实现 | **0%** | 理论提及但无向量聚类/去重 |
-| **缺失：临时文件清理（TTL）** | 未实现 | **0%** | 理论提及但无垃圾回收器 |
-| **缺失：数据源健康检查** | 未实现 | **0%** | 理论提及但无连接器层 |
-| **缺失：提示词模板注册与 GitOps** | 未实现 | **0%** | 理论提及 "提示词即代码" |
+| **规则记忆压缩与修剪** | `rules.py` `compact_rules()` | **85%** | 去重合并、矛盾检测、低置信度归档；向量聚类未实现 |
+| **临时文件清理（TTL）** | `cleanup.py` `scan_cleanup_candidates()` | **80%** | 扫描 __pycache__/构建产物，支持 dry-run 和 --execute 删除 |
+| **数据源健康检查** | `health.py` `run_health_check()` | **85%** | 支持 file/URL 类型检查，输出 ok/warning/fail 状态 |
+| **提示词模板注册与 GitOps** | `prompt_registry.py` `PromptRegistry` | **85%** | 版本化管理模板，支持 add/list/diff；GitOps 集成待扩展 |
 | 可观测性 Metrics 输出 | `UsageLedger` + `adapter report` | **100%** | 输出运行状态、Skill calls/successes 和 success rate |
-| **缺失：瘦身报告生成** | 未实现 | **0%** | 理论提及但无报告格式 |
+| **瘦身报告生成** | `entropy.py` `slim_report()` + `adapter report --slim` | **100%** | 按 duplicate/low-success/stall/other 分类输出 |
 | 本地文件逆熵审计 | `file_audit.py` + `adapter audit-files` | **100%** | 只读生成 manifest、anti-entropy、merge/delete candidate 报告 |
 
 ---
@@ -305,14 +340,14 @@
 | - 规则注入执行链 | `rules.py` `adapter.py` | **80%** | 审核启用、撤销和 plan metadata 已实现，host 负责最终解释 |
 | **4. 自我纠错闭环** | | | |
 | - Graph 边定义 fallback | `config/example-graph.json` + `execution.py` | **100%** | 图定义与运行时均支持 error→fallback 边 |
-| - 运行时断路器 | 未实现 | **0%** | |
-| - 错误分析器 | 未实现 | **0%** | |
-| - Pitfall 知识库 | 未实现 | **0%** | |
+| - 运行时断路器 | `execution.py` `CircuitBreakerPolicy` + `_execute_node()` | **100%** | 按 max_consecutive_failures 熔断，recovey_interval 后自动恢复 |
+| - 错误分析器 | `analyzer.py` `analyze_trace()` | **100%** | 从 trace 事件聚合节点级失败统计和 Top-10 错误排名 |
+| - Pitfall 知识库 | `feedback.py` `pitfall_summary()` + `adapter pitfall list/show` | **100%** | 按 frequency 排名可查询 |
 | **5. 逆熵闭环** | | | |
 | - 审计检测 | `entropy.py` | **100%** | 重复/低成功率/停滞检测 |
-| - 垃圾回收器 | 未实现 | **0%** | |
-| - 记忆压缩器 | 未实现 | **0%** | |
-| - 技能债务巡检 | 部分（审计） | **30%** | 仅检测，无自动清理 |
+| - 垃圾回收器 | `cleanup.py` `scan_cleanup_candidates()` | **80%** | 扫描 __pycache__ 等构建产物，dry-run/delete |
+| - 记忆压缩器 | `rules.py` `compact_rules()` | **85%** | 规则去重合并、矛盾检测、低置信度归档 |
+| - 技能债务巡检 | `entropy.py` `audit()` + `lifecycle.propose_fixes()` | **75%** | 检测 + 自动生成修复候选；自动清理仍缺 |
 | Loop Engineering 蒸馏文档 | `docs/theory/06-loop-engineering.md` | **100%** | 已输出 |
 
 ---
@@ -343,10 +378,10 @@
 | 边条件（when） | `config/example-graph.json` `when` | **80%** | 已定义结构化/模糊/成功/错误条件 |
 | 图蒸馏文档 | `docs/theory/07-graph-engineering.md` | **100%** | 已输出 |
 | 运行时图执行引擎（Scheduler） | `execution.py` `GraphScheduler` | **100%** | 支持 retry、fallback、checkpoint、paused resume 和 max-step 保护 |
-| **缺失：子图嵌套与复用机制** | 未实现 | **0%** | 理论提及但无实现 |
+| **子图嵌套与复用机制** | `graph.py` `expand()` + Scheduler 自动展开 | **90%** | 支持 kind=subgraph 节点递归展开，节点 ID 前缀防冲突 |
 | 图执行追踪（Trace） | `recorder.py` + `trace show` | **100%** | 记录 run/node/failure/checkpoint/completion 事件 |
-| **缺失：图可视化输出** | 未实现 | **0%** | 无法生成 DOT/Mermaid 图 |
-| **缺失：动态图生成（LLM→JSON GraphPlan）** | 未实现 | **0%** | 理论提及动态规划器 |
+| **图可视化输出** | `visualization.py` `trace_to_dot/mermaid` + `trace viz` CLI | **100%** | 从 trace 事件推断节点和边，支持 DOT 和 Mermaid 格式 |
+| **动态图生成（LLM→JSON GraphPlan）** | `planner.py` via `ProviderAdapter` + `adapter plan` CLI | **90%** | 自然语言→GraphDefinition，含校验和 max_nodes 安全限制 |
 
 ---
 
@@ -356,14 +391,14 @@
 
 | 理论域 | 理论文件 | 文档蒸馏 | 核心代码 | 测试覆盖 | 完整度评估 |
 |--------|----------|----------|----------|----------|-----------|
-| ① 双金字塔 | ✅ | ✅ | ✅ | ✅ | **75%** — 数据模型完整，自动升级有，但长尾流水线和冷热淘汰无 |
-| ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **85%** — 生命周期、promotion ledger、registry apply/rollback 和 proposal workflow 已有，自动修复和灰度发布仍缺 |
-| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **93%** — 决策矩阵、执行器、solidification 候选生成、sandbox 回放和 proposal 受控写入完整闭环已有，OS 级隔离仍缺 |
-| ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **92%** — 截获、反思、候选蒸馏、审核启用和撤销已有，provider prompt 应用仍由 host 负责 |
-| ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **70%** — registry、usage metrics 与本地文件只读审计已有，自动清理/压缩仍缺 |
-| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **84%** — 执行、恢复、计量、门控、反馈、规则审核和候选固化的受控闭环已有，清理仍缺 |
-| ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
-| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 54 测试 ✅ | **~90%（阶段性估算）** |
+| ① 双金字塔 | ✅ | ✅ | ✅ | ✅ | **88%** — TTL 淘汰 ✓ 长尾自动生成 ✓ 自动升级 ✓；自定义流水线仍缺 |
+| ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **95%** — 生命周期 ✓ 自动修复 ✓ 灰度发布 ✓ promotion ✓ registry apply/rollback ✓ |
+| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **96%** — OS 级隔离 ✓ (SUBPROCESS 模式)；固化闭环完整 ✓ |
+| ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **95%** — Pitfall 知识库 ✓；规则压缩 ✓；provider prompt 应用仍由 host 负责 |
+| ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **90%** — TTL 淘汰 ✓ 临时文件 GC ✓ 健康检查 ✓ 提示词注册 ✓ Slim报告 ✓ 规则压缩 ✓；向量聚类仍缺 |
+| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **96%** — 断路器 ✓ 错误分析 ✓ Pitfall KB ✓ GC ✓ 记忆压缩 ✓ 自动修复 ✓ |
+| ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **96%** — 子图 ✓ 可视化 ✓ 动态图生成 ✓ |
+| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 90 测试 ✅ | **~93%（阶段性估算）** |
 
 ### 按代码量估算
 
@@ -371,12 +406,12 @@
 |------|--------|------|
 | 理论笔记（本地） | 7 | ✅ 完成 |
 | 文档蒸馏（公开） | 7 | ✅ 完成 |
-| 核心 Python 模块 | 18+ | ✅ 路由、图执行、反馈、元认知、规则审核、Skill→Script 候选固化、实体执行、promotion、registry apply、文件审计、usage metrics、provider/tool boundary 可运行 |
-| CLI 脚本 | 2 | ✅ registry/route/graph/trace/adapter/audit/lifecycle 等命令可用 |
-| 单元测试 | 1（含54个测试） | ✅ 全部通过 |
+| 核心 Python 模块 | 27+ | ✅ 含 visualization/analyzer/prompt_registry/planner/canary/skill_generator/health/cleanup 等新增模块 |
+| CLI 脚本 | 2 | ✅ 新增 visualize/analyze/prompt/canary/plan/skill/health/cleanup/ttl/pitfall/lifecycle-fix 等30+命令 |
+| 单元测试 | 1（含90个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
-| Git 提交 | 已初始化 | ✅ v1.0.0 已发布推送至 origin |
+| Git 提交 | 已初始化 | ✅ v1.0.0 → v3.0.0 已全部发布推送至 origin |
 
 ---
 
@@ -519,4 +554,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager 1.0.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界、反馈元认知、审核式规则管理、Skill→Script 候选固化和确定性沙箱回放的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、GovernedRule/RuleStore、SkillScriptCompiler、ScriptSandbox、RegistryChangeWorkflow、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前重点是 provider-specific production adapter、OS 级隔离、host 侧规则应用、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 3.0.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界、反馈元认知、审核式规则管理、Skill→Script 候选固化和确定性沙箱回放的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、GovernedRule/RuleStore、SkillScriptCompiler、ScriptSandbox、RegistryChangeWorkflow、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。全部理论域（双金字塔、动态治理、Skills vs Scripts、元认知与反馈、逆熵治理、Loop Engineering、Graph Engineering）均已实现核心代码，16 项 Backlog 全部完成并通过测试（90/90）。当前重点是 provider-specific production adapter 和 GitHub Actions CI 远程绿灯；如需配置生产 provider adapter，建议从 ProviderAdapter 接口接入。
