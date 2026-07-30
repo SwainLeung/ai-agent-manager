@@ -25,6 +25,7 @@ from agent_manager.lifecycle import propose
 from agent_manager.recorder import ExecutionRecorder
 from agent_manager.registry import SkillRegistry
 from agent_manager.router import Router, RouteSignals
+from agent_manager.visualization import render
 
 
 def registry_path() -> Path:
@@ -121,6 +122,20 @@ def cmd_trace_show(args: argparse.Namespace) -> int:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 
+
+
+def cmd_trace_viz(args: argparse.Namespace) -> int:
+    from agent_manager.recorder import ExecutionRecorder
+    recorder = ExecutionRecorder.load(args.file)
+    graph_kinds_raw = getattr(args, "graph_kinds", None)
+    graph_kinds = dict(item.split("=") for item in graph_kinds_raw) if graph_kinds_raw else None
+    try:
+        output = render(recorder.events, args.format, graph_kinds=graph_kinds, graph_id=recorder.graph_id)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
 
 def adapter_from_args(args: argparse.Namespace) -> LocalAgentAdapter:
     return LocalAgentAdapter.for_project(ROOT, state_dir=args.state_dir)
@@ -463,6 +478,12 @@ def build_parser() -> argparse.ArgumentParser:
     show = trace_sub.add_parser("show")
     show.add_argument("--file", required=True, type=Path)
     show.set_defaults(func=cmd_trace_show)
+
+    viz = trace_sub.add_parser("viz")
+    viz.add_argument("--file", required=True, type=Path)
+    viz.add_argument("--format", default="mermaid", choices=["dot", "mermaid"])
+    viz.add_argument("--graph-kinds", nargs="*", help="node_id=kind pairs, e.g. route=decision collect=script")
+    viz.set_defaults(func=cmd_trace_viz)
 
     adapter = sub.add_parser("adapter")
     adapter_sub = adapter.add_subparsers(dest="adapter_command", required=True)

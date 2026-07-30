@@ -20,6 +20,7 @@ from .metacognition import FeedbackInterceptor, MetaCognitionEngine, ReflectionH
 from .rules import GovernedRule, RuleStore
 from .solidification import ScriptCandidate, SkillScriptCompiler, SolidificationError, SolidificationReport
 from .sandbox import SandboxError, SandboxReport, ScriptSandbox
+from .visualization import render
 
 __all__ = [
     "ExecutionContext",
@@ -79,4 +80,5 @@ __all__ = [
     "SandboxError",
     "SandboxReport",
     "ScriptSandbox",
+    "render",
 ]

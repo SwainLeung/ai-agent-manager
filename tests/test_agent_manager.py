@@ -855,5 +855,81 @@ class AgentManagerTests(unittest.TestCase):
         self.assertIn("checkpoint_saved", contract["events"])
 
 
+
+class VisualizationTests(unittest.TestCase):
+    """Tests for trace visualization (DOT / Mermaid output)."""
+
+    def _synthetic_trace_events(self, include_failure: bool = False):
+        from agent_manager.recorder import ExecutionRecorder
+        from datetime import datetime, timezone
+        rec = ExecutionRecorder(graph_id="test-graph")
+        # Simulate structured route: route -> collect -> finish
+        rec.emit("run_started", status="running", data={"next_node": "route"})
+        rec.emit("node_started", node_id="route", status="running")
+        rec.emit("node_finished", node_id="route", status="completed", data={"signal": "structured"})
+        rec.emit("node_started", node_id="collect", status="running")
+        rec.emit("node_finished", node_id="collect", status="completed", data={"signal": "success"})
+        rec.emit("node_started", node_id="finish", status="running")
+        rec.emit("node_finished", node_id="finish", status="completed", data={"signal": "success"})
+        if include_failure:
+            rec.emit("node_started", node_id="bogus", status="running")
+            rec.emit("node_failed", node_id="bogus", status="failed")
+        rec.emit("run_finished", status="completed", data={"error": None, "steps": 4})
+        return rec.events
+
+    def test_dot_output_basic_structure(self):
+        from agent_manager.visualization import trace_to_dot
+        events = self._synthetic_trace_events()
+        dot = trace_to_dot(events, graph_id="viz_test")
+        self.assertIn("digraph viz_test {", dot)
+        self.assertIn("rankdir=LR;", dot)
+        for node_id in ("route", "collect", "finish"):
+            self.assertIn(f'"{node_id}"', dot)
+            self.assertIn(node_id.replace("_", " ").title(), dot)
+        # Edges
+        self.assertIn('->', dot)
+
+    def test_dot_output_with_graph_kinds(self):
+        from agent_manager.visualization import trace_to_dot
+        events = self._synthetic_trace_events()
+        kinds = {"route": "decision", "collect": "script", "finish": "checkpoint"}
+        dot = trace_to_dot(events, graph_kinds=kinds)
+        self.assertIn("diamond", dot)
+        self.assertIn("hexagon", dot)
+
+    def test_dot_output_failure_node_is_highlighted(self):
+        from agent_manager.visualization import trace_to_dot
+        events = self._synthetic_trace_events(include_failure=True)
+        dot = trace_to_dot(events)
+        self.assertIn("bogus", dot)
+        self.assertIn("#ffcccc", dot)
+        self.assertIn("#cc0000", dot)
+
+    def test_mermaid_output_basic_structure(self):
+        from agent_manager.visualization import trace_to_mermaid
+        events = self._synthetic_trace_events()
+        mermaid = trace_to_mermaid(events)
+        self.assertIn("graph LR", mermaid)
+        for node_id in ("route", "collect", "finish"):
+            safe = node_id.replace("-", "_")
+            self.assertIn(safe, mermaid)
+
+    def test_mermaid_output_error_edge_uses_dashed(self):
+        from agent_manager.visualization import trace_to_mermaid
+        events = self._synthetic_trace_events(include_failure=True)
+        mermaid = trace_to_mermaid(events)
+        self.assertIn("-.->", mermaid)  # dashed error edge
+
+    def test_render_convenience_dispatch(self):
+        from agent_manager.visualization import render
+        events = self._synthetic_trace_events()
+        dot = render(events, "dot")
+        mermaid = render(events, "mermaid")
+        self.assertIn("digraph", dot)
+        self.assertIn("graph LR", mermaid)
+        with self.assertRaises(ValueError):
+            render(events, "unsupported_format")
+
+
 if __name__ == "__main__":
     unittest.main()
