@@ -1,5 +1,54 @@
 # Changelog
 
+## [1.1.0] - 2026-07-30
+
+- Added `visualization.py` for trace-to-DOT/Mermaid graph output.
+- Added `trace viz` CLI subcommand with `--format dot|mermaid`.
+- Added Pitfall knowledge base: `pitfall_summary()` and `pitfall_detail()` on FeedbackStore.
+- Added `adapter pitfall list/show` CLI for queryable pitfall entries.
+- Added Slim report: `slim_report()` and `print_slim_report()` on entropy module.
+- Added `adapter report --slim` for categorized audit findings.
+- Upgraded test suite to 65 passing tests.
+
+## [1.2.0] - 2026-07-30
+
+- Added `CircuitBreakerPolicy` with configurable `max_consecutive_failures` and recovery interval.
+- Integrated circuit breaker into `GraphScheduler._execute_node()`.
+- Added `analyzer.py` with `analyze_trace()` for failure aggregation across trace events.
+- Added `adapter analyze` CLI for node-wise failure statistics.
+- Added `prompt_registry.py` with `PromptRegistry` for version-controlled prompt templates.
+- Added `adapter prompt add/list/diff` CLI.
+- Added subgraph nesting: `graph.py expand()` method expands `kind: subgraph` nodes.
+- GraphScheduler auto-expands subgraphs on construction.
+- Added auto-fix proposals: `lifecycle.py propose_fixes()` for degraded/stalled skills.
+- Added `adapter lifecycle fix` CLI.
+- Added OS-level sandbox: `SandboxMode.SUBPROCESS` replays in subprocess.
+- Upgraded test suite to 76 passing tests.
+
+## [2.0.0] - 2026-07-31
+
+- Added `health.py` with `run_health_check()` for file and URL health probes.
+- Added `adapter health` CLI for running configured health checks.
+- Added `cleanup.py` with `scan_cleanup_candidates()` for temp/artifact file scanning.
+- Added `adapter cleanup scan` CLI with dry-run support.
+- Added TTL eviction: `TTLConfig` and `evict_expired()` on SkillRegistry.
+- Added `adapter ttl` CLI for checking expired skills.
+- Added rule compaction: `compact_rules()` for dedup, contradiction detection, and archiving.
+- Added `adapter rules compact` CLI.
+- Upgraded test suite to 84 passing tests.
+
+## [3.0.0] - 2026-07-31
+
+- Added `planner.py` with `plan_from_task()` for natural-language to GraphDefinition generation.
+- Added `adapter plan` CLI that uses ProviderAdapter to generate graph plans.
+- Added `canary.py` with `CanaryStore` for percentage-based traffic routing.
+- Added `adapter canary start/list/promote/rollback` CLI.
+- Added `skill_generator.py` with `suggest_skills()` from UsageLedger and FeedbackStore data.
+- Added `adapter skill suggest` CLI for auto-generated Skill candidates.
+- All 16 backlog items (P0-P3) completed across 4 releases.
+- Upgraded test suite to 90 passing tests.
+
+
 ## [1.0.0] - 2026-07-30
 
 - Added deterministic `ScriptSandbox` replay for candidate Scripts with fixture filtering, success-rate drift detection, and side-effect/provider/registry safeguards.

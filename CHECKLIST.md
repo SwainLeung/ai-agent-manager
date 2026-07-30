@@ -285,7 +285,7 @@
 - **Dependencies**: `pathlib`, `os` module; no core architecture changes.
 - **Estimated complexity**: ⭐⭐ (~200 lines)
 
-#### [ ] 12. Memory compaction: profile/project rule dedup and pruning
+#### [x] 12. Memory compaction: profile/project rule dedup and pruning (completed 2026-07-31)
 
 - **Target version**: v2.0.0
 - **Dual-pyramid domain**: Meta-cognition & feedback (§4), Anti-entropy (§5)

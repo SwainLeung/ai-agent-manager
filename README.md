@@ -36,8 +36,39 @@ python scripts/agent-manager.py adapter change propose --candidate-file .agent-m
 python scripts/agent-manager.py adapter change approve --proposal-file .agent-manager/proposal.json --note "reviewed"
 python scripts/agent-manager.py adapter change apply --proposal-file .agent-manager/proposal.json --write
 python scripts/agent-manager.py adapter change rollback --proposal-file .agent-manager/proposal.json --write
+python scripts/agent-manager.py adapter pitfall list
+python scripts/agent-manager.py adapter pitfall show --id pitfall-1
+python scripts/agent-manager.py adapter report --format json --slim
+python scripts/agent-manager.py adapter analyze --file .agent-manager/traces/<run-id>.json
+python scripts/agent-manager.py adapter prompt add --id my.prompt --content "hello" --version 0.1.0 --tag example
+python scripts/agent-manager.py adapter prompt list
+python scripts/agent-manager.py adapter lifecycle fix
+python scripts/agent-manager.py adapter ttl --cold 90 --warm 180 --hot 365
+python scripts/agent-manager.py adapter health --config id=docs type=file path=README.md
+python scripts/agent-manager.py adapter cleanup scan
+python scripts/agent-manager.py adapter plan --task "summarize a report"
+python scripts/agent-manager.py adapter canary start --skill-id demo.skill --new-version 2.0.0 --traffic 10
+python scripts/agent-manager.py adapter canary list
+python scripts/agent-manager.py adapter canary promote --skill-id demo.skill
+python scripts/agent-manager.py adapter skill suggest
+python scripts/agent-manager.py trace viz --file .agent-manager/traces/<run-id>.json --format mermaid
 python -m unittest discover -s tests -v
 ```
+
+
+
+## Backlog implementation (v1.0.0 → v3.0.0)
+
+The 16 theory gaps identified in `REPORT-theory-to-practice.md` have been implemented across four releases:
+
+| Version | Focus | New modules | Tests |
+|---------|-------|-------------|-------|
+| **v1.1.0** | P0: Graph viz, Pitfall KB, Slim report | `visualization.py` | 65 |
+| **v1.2.0** | P1: Circuit breaker, Error analyzer, Prompt registry, Subgraph, Auto-fix, OS sandbox | `analyzer.py`, `prompt_registry.py` | 76 |
+| **v2.0.0** | P2: Health checker, Temp GC, TTL eviction, Rule compaction | `health.py`, `cleanup.py` | 84 |
+| **v3.0.0** | P3: Dynamic graph planner, Canary rollout, Skill generator | `planner.py`, `canary.py`, `skill_generator.py` | 90 |
+
+All 16 items are complete. See [CHECKLIST.md](./CHECKLIST.md) for detailed backlog tracking.
 
 ## Repository structure
 
@@ -60,9 +91,9 @@ The original working notes are kept locally under `theory txt/` and ignored from
 - Graphs over hidden chains: nodes, edges, fallbacks, and checkpoints are inspectable.
 - Every mutation is observable: record version, source, decision, and outcome.
 
-## Runtime execution
+## Runtime execution (v3.0.0)
 
-The scheduler executes validated graphs with deterministic handlers or application-provided handlers. Each run supports:
+GraphScheduler now auto-expands subgraphs, supports `CircuitBreakerPolicy` for failure protection, and generates Mermaid/DOT visualizations from execution traces. Each run supports:
 
 - checkpoint persistence after every node;
 - retry attempts with optional backoff;
