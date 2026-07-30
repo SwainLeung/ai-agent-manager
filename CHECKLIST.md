@@ -108,7 +108,7 @@
 
 ---
 
-#### [ ] 1. Graph visualization: trace → DOT/Mermaid output
+#### [x] 1. Graph visualization: trace → DOT/Mermaid output (completed 2026-07-30)
 
 - **Target version**: v1.1.0
 - **Dual-pyramid domain**: Graph Engineering (§7)
