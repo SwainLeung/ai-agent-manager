@@ -15,6 +15,7 @@ from .feedback import FeedbackStore
 from .graph import GraphDefinition
 from .lifecycle import propose
 from .models import FeedbackEvent, RouteDecision
+from .metrics import UsageLedger
 from .recorder import ExecutionRecorder
 from .registry import SkillRegistry
 from .router import RouteSignals, Router
@@ -85,6 +86,10 @@ class LocalAgentAdapter:
     @property
     def promotion_path(self) -> Path:
         return self.state_dir / "promotion-ledger.json"
+
+    @property
+    def usage_path(self) -> Path:
+        return self.state_dir / "usage.json"
 
     def prepare(
         self,
@@ -183,6 +188,10 @@ class LocalAgentAdapter:
         context = scheduler.run(inputs or {}, checkpoint=resume)
         trace_path = Path(trace) if trace else self.state_dir / "traces" / f"{context.run_id}.json"
         recorder.save(trace_path)
+        ledger = UsageLedger.load(self.usage_path)
+        selected_skill_ids = [decision.skill_id for decision in plan.decisions[:1]]
+        ledger.record_run(context.run_id, selected_skill_ids, context.status)
+        ledger.save(self.usage_path)
         return AdapterRun(plan, context, trace_path, checkpoint_path)
 
     def record_feedback(
@@ -202,10 +211,15 @@ class LocalAgentAdapter:
 
     def report(self) -> dict[str, Any]:
         store = FeedbackStore.load(self.feedback_path)
+        ledger = UsageLedger.load(self.usage_path)
+        projected_skills = ledger.project(self.registry.skills)
+        metrics = ledger.report(self.registry.skills)
+        metrics["usage_path"] = str(self.usage_path)
         return {
             "feedback_candidates": store.candidates(),
-            "entropy_findings": [asdict(item) for item in audit(list(self.registry.skills))],
-            "lifecycle_proposals": [asdict(propose(skill)) for skill in self.registry.skills],
+            "entropy_findings": [asdict(item) for item in audit(list(projected_skills))],
+            "lifecycle_proposals": [asdict(propose(skill)) for skill in projected_skills],
+            "metrics": metrics,
             "state_dir": str(self.state_dir),
         }
 

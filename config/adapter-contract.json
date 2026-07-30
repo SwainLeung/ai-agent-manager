@@ -42,7 +42,7 @@
     },
     "report": {
       "input": {},
-      "output": {"feedback_candidates": "array", "lifecycle_proposals": "array", "entropy_findings": "array"}
+      "output": {"feedback_candidates": "array", "lifecycle_proposals": "array", "entropy_findings": "array", "metrics": "runtime usage and status metrics"}
     }
   },
   "events": [

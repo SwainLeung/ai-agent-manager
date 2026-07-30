@@ -13,6 +13,7 @@ from agent_manager.decision import DecisionMatrix
 from agent_manager.executor import ProposalExecutor
 from agent_manager.file_audit import run_local_audit
 from agent_manager.host import LocalAgentHost
+from agent_manager.metrics import UsageLedger
 from agent_manager.promotion import PromotionLedger
 from agent_manager.registry_apply import RegistryApplyError, RegistryApplier
 from agent_manager.entropy import audit
@@ -564,6 +565,32 @@ class AgentManagerTests(unittest.TestCase):
                     {"structured": True},
                     correction_note="missing subject",
                 )
+
+    def test_usage_ledger_is_idempotent_and_upgrades_paused_run(self):
+        ledger = UsageLedger()
+        self.assertTrue(ledger.record_run("run-1", ["domain.report-synthesis"], "paused"))
+        self.assertFalse(ledger.record_run("run-1", ["domain.report-synthesis"], "paused"))
+        self.assertTrue(ledger.record_run("run-1", ["domain.report-synthesis"], "completed"))
+        self.assertFalse(ledger.record_run("run-1", ["domain.report-synthesis"], "completed"))
+        report = ledger.report([skill(id="domain.report-synthesis", calls=10, successes=8)])
+        metrics = report["skill_metrics"][0]
+        self.assertEqual(report["run_count"], 1)
+        self.assertEqual(report["status_counts"]["completed"], 1)
+        self.assertEqual(metrics["runtime_calls"], 1)
+        self.assertEqual(metrics["runtime_successes"], 1)
+
+    def test_adapter_report_exposes_runtime_metrics_and_projected_lifecycle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)
+            result = adapter.run("summarize a report", {"structured": True}, RouteSignals(structured=True))
+            self.assertEqual(result.context.status, "completed")
+            report = adapter.report()
+            self.assertEqual(report["metrics"]["run_count"], 1)
+            selected = next(item for item in report["metrics"]["skill_metrics"] if item["skill_id"] == "domain.report-synthesis")
+            self.assertEqual(selected["runtime_calls"], 1)
+            self.assertEqual(selected["runtime_successes"], 1)
+            proposal = next(item for item in report["lifecycle_proposals"] if item["skill_id"] == "domain.report-synthesis")
+            self.assertEqual(proposal["proposed_frequency"], "warm")
 
     def test_local_adapter_routes_knowledge_ingestion_prep(self):
         adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1])

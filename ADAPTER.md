@@ -9,7 +9,7 @@ prepare(task)   -> route candidates
 run(task)       -> graph execution + checkpoint + trace
 host-run(task)  -> host facade + optional correction capture
 feedback(...)   -> reversible improvement candidate
-report()        -> feedback + lifecycle + entropy signals
+report()        -> feedback + lifecycle + entropy signals + metrics
 decide(...)     -> entity operation proposal: script / skill / human_review
 ```
 
@@ -51,12 +51,18 @@ Runtime files go under `.agent-manager/`, which is ignored by Git:
 - `checkpoints/`: resumable execution contexts;
 - `traces/`: structured execution events;
 - `feedback.json`: reversible feedback events;
+- `usage.json`: idempotent per-run/per-skill usage ledger and derived metrics;
 - reports generated from those signals.
 
 When `max_steps` is reached, the scheduler writes a `paused` checkpoint that
 retains `next_node` and can be resumed. Terminal `failed` and `completed`
 checkpoints are not resumable; hosts should distinguish a recoverable pause
 from a terminal failure before choosing retry, fallback, or restart.
+
+`adapter report` also exposes runtime metrics. Usage is stored under ignored
+`.agent-manager/usage.json`; the public registry remains a baseline and is not
+rewritten by normal task execution. A resumed paused run updates its existing
+`run_id + skill_id` record instead of creating a duplicate call.
 
 Do not commit credentials, private prompts, user data, production logs, traces, checkpoints, or feedback state.
 

@@ -1,8 +1,8 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 复核日期：2026-07-30
-> 项目版本：0.3.0
-> 测试通过：40/40 单元测试通过，public-check 通过
+> 项目版本：0.4.0
+> 测试通过：42/42 单元测试通过，public-check 通过
 > Git 状态：工作区干净；本地 `main` 已初始化并配置 `origin`，远程同步另行执行
 
 ---
@@ -14,7 +14,7 @@
 - `src/agent_manager/execution.py` 提供 Graph Scheduler、ExecutionContext、retry、fallback、checkpoint 和 max-step 保护。
 - `src/agent_manager/recorder.py` 提供结构化 JSON trace，记录 run、node、failure、checkpoint 和 completion 事件。
 - CLI 新增 `graph run` 与 `trace show`。
-- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 40 个单元测试通过。
+- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 42 个单元测试通过。
 
 本版本仍暂不实现自动反思器、规则蒸馏器和 Skill→Script 自动编译，这些保留为后续版本。
 
@@ -47,6 +47,13 @@
 - 新增 `LocalAgentHost` provider-neutral 宿主门面，统一任务执行、paused checkpoint 恢复和 trace/checkpoint 句柄返回。
 - 新增宿主侧纠正捕获，自动写入可逆 `FeedbackEvent` 候选，不自动提升为规则。
 - 新增 `adapter host-run` CLI、机器契约、示例和 run/resume/feedback 回归测试；模型调用、工具认证和最终响应仍由 host 负责。
+
+### v0.4.0 Runtime Accounting 增量
+
+- 新增被忽略的 `UsageLedger`，按 `run_id + skill_id` 记录运行次数、成功次数和 paused/completed/failed 状态。
+- retry 只计一次；paused checkpoint 恢复为 completed 时升级原记录，不产生重复调用。
+- `adapter report` 新增 runtime metrics，并将有效计量投影到 lifecycle 与 entropy 计算；公共 registry 不被运行时遥测改写。
+- 新增计量持久化、幂等和 lifecycle projection 回归测试；当前完整测试数为 42。
 
 ---
 
@@ -210,7 +217,7 @@
 | **缺失：临时文件清理（TTL）** | 未实现 | **0%** | 理论提及但无垃圾回收器 |
 | **缺失：数据源健康检查** | 未实现 | **0%** | 理论提及但无连接器层 |
 | **缺失：提示词模板注册与 GitOps** | 未实现 | **0%** | 理论提及 "提示词即代码" |
-| **缺失：可观测性仪表盘** | 未实现 | **0%** | 理论提及但无 Metrics 输出 |
+| 可观测性 Metrics 输出 | `UsageLedger` + `adapter report` | **100%** | 输出运行状态、Skill calls/successes 和 success rate |
 | **缺失：瘦身报告生成** | 未实现 | **0%** | 理论提及但无报告格式 |
 | 本地文件逆熵审计 | `file_audit.py` + `adapter audit-files` | **100%** | 只读生成 manifest、anti-entropy、merge/delete candidate 报告 |
 
@@ -240,7 +247,7 @@
 | - Skill Registry 元数据注册 | `registry.py` | **100%** | 完整实现 |
 | - 语义路由（关键字匹配） | `router.py` | **100%** | trigger 关键字打分 |
 | - 懒加载按需激活 | registry.matching() 返回 metadata | **100%** | 仅路由元数据，未加载全量 |
-| - 执行记录（calls/successes） | `execution.py`, `recorder.py`, `executor.py` | **65%** | 图运行、ProposalExecutor、checkpoint 和 trace 已记录；Skill.calls/successes 自动回写仍未实现 |
+| - 执行记录（calls/successes） | `metrics.py` `UsageLedger` + `adapter.report()` | **100%** | 运行时 ledger 持久化，按 run_id+skill_id 幂等计数并投影 lifecycle |
 | **2. 脚本固化闭环** | | | |
 | - 稳定性评估（lifecycle.propose） | `lifecycle.py` | **100%** | 基于调用量和成功率 |
 | - Skill→Script 生成 | 未实现 | **0%** | |
@@ -310,10 +317,10 @@
 | ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **80%** — 生命周期、promotion、registry apply/rollback 已有，自动修复和灰度发布仍缺 |
 | ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **82%** — 决策矩阵、执行器和人工门控已有，自动固化仍缺 |
 | ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **70%** — 反馈持久化、候选聚合和 CLI 已有，截获/反思/注入仍缺 |
-| ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **65%** — registry 与本地文件只读审计已有，自动清理/压缩/指标仍缺 |
-| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **65%** — 执行、恢复、门控、反馈和审计闭环已有，自动反思与清理仍缺 |
+| ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **70%** — registry、usage metrics 与本地文件只读审计已有，自动清理/压缩仍缺 |
+| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **70%** — 执行、恢复、计量、门控、反馈和审计闭环已有，自动反思与清理仍缺 |
 | ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
-| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 40 测试 ✅ | **~78%（阶段性估算）** |
+| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 42 测试 ✅ | **~80%（阶段性估算）** |
 
 ### 按代码量估算
 
@@ -321,9 +328,9 @@
 |------|--------|------|
 | 理论笔记（本地） | 7 | ✅ 完成 |
 | 文档蒸馏（公开） | 7 | ✅ 完成 |
-| 核心 Python 模块 | 12+ | ✅ 路由、图执行、反馈、实体执行、promotion、registry apply、文件审计可运行 |
+| 核心 Python 模块 | 13+ | ✅ 路由、图执行、反馈、实体执行、promotion、registry apply、文件审计、usage metrics 可运行 |
 | CLI 脚本 | 2 | ✅ registry/route/graph/trace/adapter/audit/lifecycle 等命令可用 |
-| 单元测试 | 1（含40个测试） | ✅ 全部通过 |
+| 单元测试 | 1（含42个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
 | Git 提交 | 已初始化 | ✅ 当前版本与报告一并提交；工作区状态按发布流程检查 |
@@ -456,15 +463,15 @@ graph TB
 
 | 优先级 | 方向 | 当前完成度 |
 |--------|------|-----------|
-| 🔴 P0 | Skill.calls/successes 自动回写 | 50% |
+| 🔴 P0 | 运行时 Skill.calls/successes 计量 | 100% |
 | 🔴 P0 | Provider-specific 工具适配 | 0% |
 | 🟡 P1 | Skill→Script 自动固化引擎 | 0% |
 | 🟡 P1 | 反馈拦截层 + 反思器 + 规则蒸馏器 | 0% |
 | 🟢 P2 | 记忆压缩与 TTL 清理 | 0% |
-| 🟢 P2 | 可观测性 Metrics 输出 | 0% |
+| 🟢 P2 | 可观测性 Metrics 输出 | 100% |
 | 🔵 P3 | 动态图生成（LLM→JSON GraphPlan） | 0% |
 | 🔵 P3 | 技能金丝雀发布 | 0% |
 
 ---
 
-> **总结：** Agent Manager 0.3.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入的本地控制平面：Router、Graph Scheduler、trace、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计和 `LocalAgentHost` 均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 provider-specific 工具适配、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 0.4.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计和 `LocalAgentHost` 均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 provider-specific 工具适配、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。

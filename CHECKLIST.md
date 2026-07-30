@@ -22,9 +22,9 @@
 - [x] `python -m unittest discover -s tests -v` passes.
 - [x] Registry and graph examples validate.
 - [x] Route output contains no prompt or secret material.
-- [ ] `git diff --cached --check` passes.
+- [x] `git diff --cached --check` passes.
 - [ ] GitHub Actions CI is green before public visibility.
-- [ ] Remote URL is reviewed before the first push.
+- [x] Remote URL is reviewed before the first push.
 
 ## Local verification
 
@@ -53,6 +53,7 @@
 - 2026-07-30: read-only local FlowUs file audit ran against 16 assets and produced 107 findings; no merge or delete mutation occurred.
 - 2026-07-30: rebuilt eight granite.wiki derived files from normalized pipeline outputs, archived the prior versions, and reduced actionable stale/drift/duplicate findings to zero; 92 provenance/reference findings remain.
 - 2026-07-30: v0.3.0 Host Integration added `LocalAgentHost`, provider-neutral run/resume handling, optional correction capture, CLI coverage, and 3 regression tests.
+- 2026-07-30: v0.4.0 runtime accounting added ignored `UsageLedger` metrics, idempotent run/skill counting, paused-to-completed upgrades, and 2 regression tests; full suite now has 42 passing tests.
 
 ## Gradual local-agent adoption
 

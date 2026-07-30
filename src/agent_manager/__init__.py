@@ -12,6 +12,7 @@ from .registry import SkillRegistry
 from .router import Router
 from .file_audit import run_local_audit
 from .host import HostTaskResult, LocalAgentHost
+from .metrics import UsageEntry, UsageLedger
 
 __all__ = [
     "ExecutionContext",
@@ -41,4 +42,6 @@ __all__ = [
     "run_local_audit",
     "HostTaskResult",
     "LocalAgentHost",
+    "UsageEntry",
+    "UsageLedger",
 ]

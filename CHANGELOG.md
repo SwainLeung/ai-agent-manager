@@ -17,6 +17,13 @@
 - Added segmented atomic checkpoint writes for large proposal batches, avoiding per-proposal O(n²) checkpoint I/O.
 - Added read-only local file Anti-entropy audit with provenance, freshness, duplicate, ownership, reference-integrity, merge-candidate, and delete-candidate reports.
 
+## [0.4.0] - 2026-07-30
+
+- Added an ignored runtime `UsageLedger` for per-run Skill calls/successes and status metrics.
+- Made usage accounting idempotent by `run_id + skill_id`; paused runs upgrade to completed without double-counting on resume.
+- Projected runtime usage into lifecycle and entropy reports without mutating the public registry.
+- Exposed runtime metrics through `adapter report` and added regression coverage for idempotency and lifecycle projection.
+
 ## [0.3.0] - 2026-07-30
 
 - Added `LocalAgentHost` as a provider-neutral host-facing facade for governed task runs and checkpoint resume.

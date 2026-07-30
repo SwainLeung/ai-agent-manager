@@ -66,6 +66,14 @@ result = host.run_task(
 tools, approvals, and final response composition. A paused run can be resumed
 with `host.resume_task(task, checkpoint, inputs=...)`.
 
+### Runtime accounting and metrics
+
+The adapter records selected route usage in an ignored `usage.json` ledger.
+Each entry is keyed by `run_id + skill_id`, so retries are counted once and a
+paused run can upgrade to `completed` without double-counting. The public
+registry is treated as a baseline; `adapter report` projects runtime deltas
+onto lifecycle and entropy calculations and returns a `metrics` object.
+
 ## 4. Minimal Python integration
 
 ```python
