@@ -1,9 +1,9 @@
 # AI Agent Manager — 理论到实践映射报告
 
-> 生成日期：2026-07-29
-> 项目版本：0.2.4
-> 测试通过：16/16 单元测试通过，public-check 通过
-> Git 状态：所有文件未提交（初始仓库）
+> 复核日期：2026-07-30
+> 项目版本：0.2.4（当前本地分支包含后续未发布增量）
+> 测试通过：37/37 单元测试通过，public-check 通过
+> Git 状态：工作区干净；HEAD=`bec9512`；`main` 比 `origin/main` 超前 9 个提交
 
 ---
 
@@ -14,7 +14,7 @@
 - `src/agent_manager/execution.py` 提供 Graph Scheduler、ExecutionContext、retry、fallback、checkpoint 和 max-step 保护。
 - `src/agent_manager/recorder.py` 提供结构化 JSON trace，记录 run、node、failure、checkpoint 和 completion 事件。
 - CLI 新增 `graph run` 与 `trace show`。
-- 示例 Graph 已实际执行成功，产生 12 条 trace 事件；新增测试后总计 11 个单元测试通过。
+- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 37 个单元测试通过。
 
 本版本仍暂不实现自动反思器、规则蒸馏器和 Skill→Script 自动编译，这些保留为后续版本。
 
@@ -23,7 +23,7 @@
 - 新增 `LocalAgentAdapter`，作为本机 Agent 进入 Router、Graph Scheduler、Recorder 和 FeedbackStore 的统一入口。
 - 新增 `adapter prepare/run/feedback/report` CLI 流程。
 - 运行时数据继续保存在被 `.gitignore` 排除的 `.agent-manager/`，反馈先形成候选，不自动修改公开注册表。
-- 13 个单元测试和四条适配器 CLI 流程通过；下一阶段是接入一个真实本机 Agent 主机并进行低风险试运行。
+- 适配器 CLI 流程、checkpoint/trace 持久化、反馈候选与实体执行门控均已覆盖；当前仍保持 provider-neutral，不在本仓库内直接调用模型或外部工具。
 
 ### v0.2.3 通用接入增量
 
@@ -31,12 +31,19 @@
 - 新增 `examples/adapter-host.py`，提供其他 Agent 的最小接入样例。
 - 契约测试通过；当前公共接入面已具备文档、机器契约、Python API、CLI 和状态边界说明。
 
-### v0.2.4 Flowus 准备验证增量
+### v0.2.4 Flowus/本体准备验证增量
 
 - 新增 `project.knowledge-ingestion-prep` 实验性路由，用于 Flowus/本体/知识映射准备任务。
 - 首次无路由命中被记录为 `pitfall` 候选，修复后同类任务命中五个触发词。
 - 修复 `FeedbackStore` 持久化重载后无法追加反馈的问题，并增加回归测试。
-- Flowus 对接仍处于准备阶段，未调用 API、未写入 Obsidian、未发布线上内容。
+- 公共仓库只保留 provider-neutral 的准备、审计、决策和执行门控；本地 FlowUs 文件审计为只读，不执行合并、删除、写回或公开发布。
+
+### 当前未发布增量（截至 2026-07-30）
+
+- max-step 中断改为可恢复的 `paused` checkpoint，并保留 `next_node`；终态 `failed/completed` checkpoint 不允许误恢复。
+- 新增实体级 `DecisionMatrix`、`ProposalExecutor`、Script/Skill/human-review 门控，以及大批量分段 checkpoint/resume。
+- 新增 Promotion Ledger、版本化 registry apply manifest、显式 approval、backup、drift check 与 rollback/undo。
+- 新增只读本地文件逆熵审计，输出 provenance、freshness、duplicate、ownership、reference-integrity、merge/delete candidate 报告。
 
 ---
 
@@ -109,9 +116,9 @@
 | 生命周期状态迁移提案 | `lifecycle.py` `propose()` | **100%** | 基于 calls+success_rate 计算 proposed_status |
 | CLI 生命周期查看 | `scripts/agent-manager.py` `lifecycle` | **100%** | 已验证输出通过 |
 | 动态治理蒸馏文档 | `docs/theory/02-dynamic-governance.md` | **100%** | 已输出 |
-| **缺失：自动修复提案 → 版本测试闭环** | 未实现 | **0%** | 理论提及但无 sandbox 自动测试 |
+| 自动修复提案 → 版本测试闭环 | `ProposalExecutor` + 测试套件 | **60%** | 有确定性 Script 执行、checkpoint/resume 与回归测试；自动生成修复提案仍未实现 |
 | **缺失：金丝雀/灰度发布技能** | 未实现 | **0%** | 理论提及但无实现 |
-| **缺失：技能版本回滚机制** | 未实现 | **0%** | `Skill.version` 已定义但无回滚逻辑 |
+| 技能/注册表版本回滚机制 | `registry_apply.py` + manifest/rollback | **70%** | 已支持版本化 registry apply、备份、漂移检测和 rollback；尚未覆盖 Skill 实现级灰度回滚 |
 
 ---
 
@@ -139,7 +146,7 @@
 | CLI 路由测试 | `scripts/agent-manager.py` `route` | **100%** | 已验证，结构化任务倾向 script |
 | 决策矩阵蒸馏文档 | `docs/theory/03-skills-vs-scripts.md` | **100%** | 已输出 |
 | **缺失：Skill → Script 自动固化引擎** | 未实现 | **0%** | 理论 "编译器 + 沙箱验证" 未实现 |
-| **缺失：Script 失败回退 Skill 机制** | 未实现 | **0%** | 图中有 fallback 边定义，但运行时无执行引擎 |
+| Script 失败回退 Skill 机制 | `execution.py` fallback + graph edges | **60%** | 图运行时支持 error-edge fallback；provider-specific Script→Skill 转换仍由 host 负责 |
 | **缺失：问题矩阵 Agent 内化自评判** | 未实现 | **0%** | 当前 Router 需外部传入 signals，非 Agent 内化 |
 
 ---
@@ -167,7 +174,7 @@
 | 置信度校验 | `feedback.py` `record()` | **100%** | confidence ∈ [0,1] |
 | 候选规则聚合 | `feedback.py` `candidates()` | **100%** | 按 scope+subject 分组，≥最小置信度才纳入候选 |
 | 持久化存储 | `feedback.py` `save()` | **100%** | JSON 格式落盘 |
-| CLI 集成 | 当前无反馈 CLI 命令 | **50%** | 类已可用但无命令行入口 |
+| CLI 集成 | `scripts/agent-manager.py adapter feedback/report` | **100%** | 已支持 feedback 记录与综合 report 输出 |
 | 反馈机制蒸馏文档 | `docs/theory/04-feedback-and-metacognition.md` | **100%** | 已输出 |
 | **缺失：交互截获层（Interceptor）** | 未实现 | **0%** | 理论提及但无监听层 |
 | **缺失：反思器（Reflector）** | 未实现 | **0%** | 理论提及但无自动分析假设引擎 |
@@ -195,13 +202,14 @@
 | 生命周期停滞检测 | `entropy.py` `audit()` lifecycle-stall | **100%** | experimental + calls≥20 |
 | CLI 审计命令 | `scripts/agent-manager.py` `audit` | **100%** | 已验证，当前示例无发现 |
 | 审计蒸馏文档 | `docs/theory/05-anti-entropy.md` | **100%** | 已输出 |
-| **缺失：上下文 Token 预算制** | 仅 registry 中有 `system.context-budget` 占位 | **10%** | 无实际 Token 管理代码 |
+| 上下文 Token 预算制 | registry 占位 + host contract | **10%** | 公共控制面不管理 provider token，仍需 host/provider 侧实现 |
 | **缺失：记忆合并与修剪** | 未实现 | **0%** | 理论提及但无向量聚类/去重 |
 | **缺失：临时文件清理（TTL）** | 未实现 | **0%** | 理论提及但无垃圾回收器 |
 | **缺失：数据源健康检查** | 未实现 | **0%** | 理论提及但无连接器层 |
 | **缺失：提示词模板注册与 GitOps** | 未实现 | **0%** | 理论提及 "提示词即代码" |
 | **缺失：可观测性仪表盘** | 未实现 | **0%** | 理论提及但无 Metrics 输出 |
 | **缺失：瘦身报告生成** | 未实现 | **0%** | 理论提及但无报告格式 |
+| 本地文件逆熵审计 | `file_audit.py` + `adapter audit-files` | **100%** | 只读生成 manifest、anti-entropy、merge/delete candidate 报告 |
 
 ---
 
@@ -229,7 +237,7 @@
 | - Skill Registry 元数据注册 | `registry.py` | **100%** | 完整实现 |
 | - 语义路由（关键字匹配） | `router.py` | **100%** | trigger 关键字打分 |
 | - 懒加载按需激活 | registry.matching() 返回 metadata | **100%** | 仅路由元数据，未加载全量 |
-| - 执行记录（calls/successes） | `models.py` 已有字段，但无增量更新入口 | **50%** | 字段已定义，无运行时 recorder |
+| - 执行记录（calls/successes） | `execution.py`, `recorder.py`, `executor.py` | **65%** | 图运行、ProposalExecutor、checkpoint 和 trace 已记录；Skill.calls/successes 自动回写仍未实现 |
 | **2. 脚本固化闭环** | | | |
 | - 稳定性评估（lifecycle.propose） | `lifecycle.py` | **100%** | 基于调用量和成功率 |
 | - Skill→Script 生成 | 未实现 | **0%** | |
@@ -243,7 +251,7 @@
 | - 规则蒸馏器 | 未实现 | **0%** | |
 | - 规则注入执行链 | 未实现 | **0%** | |
 | **4. 自我纠错闭环** | | | |
-| - Graph 边定义 fallback | `config/example-graph.json` edges | **70%** | 图定义支持 error→fallback 边 |
+| - Graph 边定义 fallback | `config/example-graph.json` + `execution.py` | **100%** | 图定义与运行时均支持 error→fallback 边 |
 | - 运行时断路器 | 未实现 | **0%** | |
 | - 错误分析器 | 未实现 | **0%** | |
 | - Pitfall 知识库 | 未实现 | **0%** | |
@@ -278,12 +286,12 @@
 | 图验证器 | `graph.py` `validate()` | **100%** | 节点唯一性、start/edge 引用完整性校验 |
 | 示例图 | `config/example-graph.json` | **100%** | 含 route/collect/synthesize/fallback/finish |
 | CLI 图验证 | `scripts/agent-manager.py` `graph validate` | **100%** | 已验证通过 |
-| 节点类型（decision/script/skill/checkpoint） | `config/example-graph.json` `kind` | **80%** | 已定义但无 enum 校验 |
+| 节点类型（decision/script/skill/checkpoint） | `config/example-graph.json` `kind` | **90%** | 已定义并由图校验/运行时处理，仍未单独限制全部 kind 枚举 |
 | 边条件（when） | `config/example-graph.json` `when` | **80%** | 已定义结构化/模糊/成功/错误条件 |
 | 图蒸馏文档 | `docs/theory/07-graph-engineering.md` | **100%** | 已输出 |
-| **缺失：运行时图执行引擎（Scheduler）** | 未实现 | **0%** | 仅有数据结构和验证，无可执行引擎 |
+| 运行时图执行引擎（Scheduler） | `execution.py` `GraphScheduler` | **100%** | 支持 retry、fallback、checkpoint、paused resume 和 max-step 保护 |
 | **缺失：子图嵌套与复用机制** | 未实现 | **0%** | 理论提及但无实现 |
-| **缺失：图执行追踪（Trace）** | 未实现 | **0%** | 无执行轨迹记录 |
+| 图执行追踪（Trace） | `recorder.py` + `trace show` | **100%** | 记录 run/node/failure/checkpoint/completion 事件 |
 | **缺失：图可视化输出** | 未实现 | **0%** | 无法生成 DOT/Mermaid 图 |
 | **缺失：动态图生成（LLM→JSON GraphPlan）** | 未实现 | **0%** | 理论提及动态规划器 |
 
@@ -296,13 +304,13 @@
 | 理论域 | 理论文件 | 文档蒸馏 | 核心代码 | 测试覆盖 | 完整度评估 |
 |--------|----------|----------|----------|----------|-----------|
 | ① 双金字塔 | ✅ | ✅ | ✅ | ✅ | **75%** — 数据模型完整，自动升级有，但长尾流水线和冷热淘汰无 |
-| ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **65%** — 注册和生命周期有，无自动修复和灰度发布 |
-| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **70%** — 决策矩阵有，自动固化和回退无 |
-| ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **55%** — 反馈存储完整，无截获层/反思器/蒸馏器 |
-| ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **45%** — 审计检测有，清理/压缩/指标全无 |
-| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **40%** — 各闭环"感知"能力分散实现，"行动"层几乎全缺 |
-| ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **55%** — 图定义和验证完整，无执行引擎和可视化 |
-| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 7 测试 ✅ | **~58%** |
+| ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **80%** — 生命周期、promotion、registry apply/rollback 已有，自动修复和灰度发布仍缺 |
+| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **82%** — 决策矩阵、执行器和人工门控已有，自动固化仍缺 |
+| ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **70%** — 反馈持久化、候选聚合和 CLI 已有，截获/反思/注入仍缺 |
+| ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **65%** — registry 与本地文件只读审计已有，自动清理/压缩/指标仍缺 |
+| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **65%** — 执行、恢复、门控、反馈和审计闭环已有，自动反思与清理仍缺 |
+| ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
+| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 37 测试 ✅ | **~75%（阶段性估算）** |
 
 ### 按代码量估算
 
@@ -310,12 +318,12 @@
 |------|--------|------|
 | 理论笔记（本地） | 7 | ✅ 完成 |
 | 文档蒸馏（公开） | 7 | ✅ 完成 |
-| 核心 Python 模块 | 7 | ✅ 基础实现可运行 |
-| CLI 脚本 | 2 | ✅ 完整8个命令 |
-| 单元测试 | 1（含7个测试） | ✅ 全部通过 |
+| 核心 Python 模块 | 12+ | ✅ 路由、图执行、反馈、实体执行、promotion、registry apply、文件审计可运行 |
+| CLI 脚本 | 2 | ✅ registry/route/graph/trace/adapter/audit/lifecycle 等命令可用 |
+| 单元测试 | 1（含37个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
-| Git 提交 | 0 | ❌ 未初始化 |
+| Git 提交 | 已初始化 | ✅ `bec9512`；工作区干净 |
 
 ---
 
@@ -427,9 +435,9 @@ graph TB
 
 ### 必须完成
 
-- [ ] **初始化 Git 提交** — 当前无任何 commit，`git add -A && git commit -m "Initial commit: v0.1.0"`
-- [ ] **配置远程 URL** — `git remote add origin <repo-url>` 并审查
-- [ ] **运行 `git diff --cached --check`** — 检查 whitespace 错误
+- [x] **初始化 Git 提交** — 当前 `main` 已有提交，最新为 `bec9512`
+- [x] **配置远程 URL** — `origin` 已指向 `https://github.com/SwainLeung/ai-agent-manager.git`
+- [x] **运行 `git diff --cached --check`** — 本次提交前已通过
 - [ ] **验证 GitHub Actions CI** — `.github/workflows/ci.yml` 在 PR 前确认工作
 - [ ] **README.md 二维码/徽章** — 替换为实际 CI badge URL
 
@@ -445,8 +453,8 @@ graph TB
 
 | 优先级 | 方向 | 当前完成度 |
 |--------|------|-----------|
-| 🔴 P0 | 运行时图执行引擎（Graph Scheduler） | 0% |
-| 🔴 P0 | 运行时 Recorder（增量 calls/successes 更新） | 50% |
+| 🔴 P0 | Skill.calls/successes 自动回写 | 50% |
+| 🔴 P0 | Provider/host 侧真实工具适配 | 0% |
 | 🟡 P1 | Skill→Script 自动固化引擎 | 0% |
 | 🟡 P1 | 反馈拦截层 + 反思器 + 规则蒸馏器 | 0% |
 | 🟢 P2 | 记忆压缩与 TTL 清理 | 0% |
@@ -456,4 +464,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager v0.1.0 是一个**治理契约（Governance Contracts）** 的参考实现。7 个理论域全部有对应代码或文档，但偏重"定义与验证"侧（~58% 完成度），"运行时执行与自适应"侧（~30%）仍需后续版本补全。当前状态**可推送**，但建议先完成 Git 初始化和 CI 验证。
+> **总结：** Agent Manager 0.2.4 已从治理契约参考实现推进为可执行、可审计、可恢复的本地控制平面：Router、Graph Scheduler、trace、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback 和只读文件审计均已有可验证实现。当前本地 `main` 工作区干净，最新提交为 `bec9512`，并领先 `origin/main` 9 个提交。后续重点是 provider/host 适配、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
