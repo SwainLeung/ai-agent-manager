@@ -281,6 +281,98 @@ def cmd_adapter_health_run(args: argparse.Namespace) -> int:
 
 
 
+
+
+
+
+def cmd_adapter_skill_suggest(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.skill_generator import suggest_skills
+    from agent_manager.feedback import FeedbackStore
+    from agent_manager.metrics import UsageLedger
+    ledger = UsageLedger.load(args.state_dir / "usage.json")
+    store = FeedbackStore.load(args.state_dir / "feedback.json")
+    entries = [{"skill_id": e.skill_id, "status": e.status} for e in ledger.entries]
+    events = [{"event_type": e.event_type, "subject": e.subject, "note": e.note} for e in store.events]
+    candidates = suggest_skills(entries, events, min_calls=args.min_calls or 3, top_k=args.top_k or 5)
+    print(json.dumps(candidates, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_plan_generate(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.provider import MockProvider
+    from agent_manager.planner import plan_from_task
+    from agent_manager.graph import GraphValidationError
+    provider = MockProvider()
+    try:
+        graph = plan_from_task(args.task, provider, graph_id=args.graph_id)
+        print(json.dumps({
+            "graph_id": graph.graph_id,
+            "start": graph.start,
+            "nodes": list(graph.nodes),
+            "edges": list(graph.edges),
+        }, ensure_ascii=False, indent=2))
+        return 0
+    except GraphValidationError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+
+
+def cmd_adapter_canary_start(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.canary import CanaryConfig, CanaryStore
+    store = CanaryStore.load(args.state_dir / "canary.json")
+    config = CanaryConfig(
+        skill_id=args.skill_id,
+        new_version=args.new_version,
+        traffic_percentage=args.traffic or 10,
+        cooldown_hours=args.cooldown or 24,
+    )
+    store.add(config)
+    store.save(args.state_dir / "canary.json")
+    print(json.dumps(config.to_dict(), ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_canary_list(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.canary import CanaryStore
+    store = CanaryStore.load(args.state_dir / "canary.json")
+    print(json.dumps([c.to_dict() for c in store._configs], ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_canary_promote(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.canary import CanaryStore
+    store = CanaryStore.load(args.state_dir / "canary.json")
+    config = store.promote(args.skill_id)
+    if config:
+        store.save(args.state_dir / "canary.json")
+        print(json.dumps(config.to_dict(), ensure_ascii=False, indent=2))
+    else:
+        print(f"no running canary for: {args.skill_id}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def cmd_adapter_canary_rollback(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.canary import CanaryStore
+    store = CanaryStore.load(args.state_dir / "canary.json")
+    config = store.rollback(args.skill_id)
+    if config:
+        store.save(args.state_dir / "canary.json")
+        print(json.dumps(config.to_dict(), ensure_ascii=False, indent=2))
+    else:
+        print(f"no running canary for: {args.skill_id}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_adapter_ttl_check(args: argparse.Namespace) -> int:
     import json
     from agent_manager.registry import evict_expired, TTLConfig
@@ -871,6 +963,41 @@ def build_parser() -> argparse.ArgumentParser:
     ttl.add_argument("--hot", type=int, default=365)
     ttl.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     ttl.set_defaults(func=cmd_adapter_ttl_check)
+
+    plan_gen = adapter_sub.add_parser("plan")
+    plan_gen.add_argument("--task", required=True)
+    plan_gen.add_argument("--graph-id", default="dynamic-plan")
+    plan_gen.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    plan_gen.set_defaults(func=cmd_adapter_plan_generate)
+
+    skill = adapter_sub.add_parser("skill")
+    skill_sub = skill.add_subparsers(dest="skill_command", required=True)
+    s_suggest = skill_sub.add_parser("suggest")
+    s_suggest.add_argument("--min-calls", type=int, default=3)
+    s_suggest.add_argument("--top-k", type=int, default=5)
+    s_suggest.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    s_suggest.set_defaults(func=cmd_adapter_skill_suggest)
+
+    canary = adapter_sub.add_parser("canary")
+    canary_sub = canary.add_subparsers(dest="canary_command", required=True)
+    c_start = canary_sub.add_parser("start")
+    c_start.add_argument("--skill-id", required=True)
+    c_start.add_argument("--new-version", required=True)
+    c_start.add_argument("--traffic", type=int, default=10)
+    c_start.add_argument("--cooldown", type=float, default=24)
+    c_start.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    c_start.set_defaults(func=cmd_adapter_canary_start)
+    c_list = canary_sub.add_parser("list")
+    c_list.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    c_list.set_defaults(func=cmd_adapter_canary_list)
+    c_promote = canary_sub.add_parser("promote")
+    c_promote.add_argument("--skill-id", required=True)
+    c_promote.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    c_promote.set_defaults(func=cmd_adapter_canary_promote)
+    c_rollback = canary_sub.add_parser("rollback")
+    c_rollback.add_argument("--skill-id", required=True)
+    c_rollback.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    c_rollback.set_defaults(func=cmd_adapter_canary_rollback)
 
     rules_compact = adapter_sub.add_parser("rules")  # reuse rules subcommand
     rules_compact_sub = rules_compact.add_subparsers(dest="rules_command", required=True)

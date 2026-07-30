@@ -321,7 +321,7 @@
 
 ---
 
-#### [ ] 14. Dynamic graph generation (LLM → JSON GraphPlan)
+#### [x] 14. Dynamic graph generation (LLM → JSON GraphPlan) (completed 2026-07-31)
 
 - **Target version**: v3.0.0
 - **Dual-pyramid domain**: Graph Engineering (§7)
@@ -336,7 +336,7 @@
 - **Dependencies**: ProviderAdapter (`provider.py`), GraphDefinition (`graph.py`), error handling for malformed LLM output.
 - **Estimated complexity**: ⭐⭐⭐⭐ (~500 lines)
 
-#### [ ] 15. Canary / gradual rollout for skill lifecycle transitions
+#### [x] 15. Canary / gradual rollout for skill lifecycle transitions (completed 2026-07-31)
 
 - **Target version**: v3.0.0
 - **Dual-pyramid domain**: Dynamic governance (§2)
@@ -351,7 +351,7 @@
 - **Dependencies**: Router (`router.py`), Registry version support, new canary state store.
 - **Estimated complexity**: ⭐⭐⭐⭐ (~500 lines)
 
-#### [ ] 16. Long-tail skill auto-generation pipeline
+#### [x] 16. Long-tail skill auto-generation pipeline (completed 2026-07-31)
 
 - **Target version**: v3.0.0
 - **Dual-pyramid domain**: Dual pyramid (§1)

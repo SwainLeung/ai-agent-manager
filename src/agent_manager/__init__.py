@@ -21,7 +21,10 @@ from .rules import GovernedRule, RuleStore
 from .solidification import ScriptCandidate, SkillScriptCompiler, SolidificationError, SolidificationReport
 from .analyzer import analyze_trace
 from .prompt_registry import PromptRegistry, PromptTemplate
+from .skill_generator import suggest_skills
 from .sandbox import SandboxError, SandboxReport, ScriptSandbox
+from .planner import plan_from_task
+from .canary import CanaryConfig, CanaryStore
 from .health import run_health_check, run_health_checks
 from .cleanup import scan_cleanup_candidates
 from .visualization import render
@@ -85,9 +88,13 @@ __all__ = [
     "SandboxError",
     "SandboxReport",
     "analyze_trace",
+    "suggest_skills",
     "PromptRegistry",
     "PromptTemplate",
     "ScriptSandbox",
+    "plan_from_task",
+    "CanaryConfig",
+    "CanaryStore",
     "run_health_check",
     "run_health_checks",
     "scan_cleanup_candidates",

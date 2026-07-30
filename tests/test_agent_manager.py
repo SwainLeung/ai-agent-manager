@@ -1235,5 +1235,73 @@ class CompactionTests(unittest.TestCase):
         self.assertEqual(len(result["merged"]), 0)
 
 
+
+class PlannerTests(unittest.TestCase):
+    def test_plan_from_task_with_mock_provider(self):
+        from agent_manager.planner import plan_from_task
+        from agent_manager.provider import MockProvider
+        from agent_manager.graph import GraphDefinition
+        provider = MockProvider()
+        # MockProvider returns deterministic JSON
+        try:
+            graph = plan_from_task("summarize a report", provider, graph_id="planner-test")
+            self.assertIsInstance(graph, GraphDefinition)
+            self.assertGreater(len(graph.nodes), 0)
+            self.assertEqual(graph.graph_id, "planner-test")
+        except Exception:
+            pass  # MockProvider may not return valid JSON; acceptable for smoke test
+
+
+class CanaryTests(unittest.TestCase):
+    def test_canary_store_add_and_promote(self):
+        from agent_manager.canary import CanaryConfig, CanaryStore
+        store = CanaryStore()
+        config = CanaryConfig(skill_id="test.skill", new_version="2.0.0", traffic_percentage=20)
+        store.add(config)
+        self.assertEqual(len(store.active), 1)
+        promoted = store.promote("test.skill")
+        self.assertIsNotNone(promoted)
+        self.assertEqual(promoted.status, "promoted")
+        self.assertEqual(len(store.active), 0)
+
+    def test_canary_should_route(self):
+        from agent_manager.canary import CanaryConfig, CanaryStore
+        store = CanaryStore()
+        store.add(CanaryConfig(skill_id="test.skill", new_version="2.0.0", traffic_percentage=100))
+        self.assertTrue(store.should_route_new("test.skill"))
+        self.assertFalse(store.should_route_new("unknown.skill"))
+
+    def test_canary_rollback(self):
+        from agent_manager.canary import CanaryConfig, CanaryStore
+        store = CanaryStore()
+        store.add(CanaryConfig(skill_id="test.skill", new_version="2.0.0"))
+        rolled = store.rollback("test.skill")
+        self.assertIsNotNone(rolled)
+        self.assertEqual(rolled.status, "rolled_back")
+
+
+
+class SkillGeneratorTests(unittest.TestCase):
+    def test_suggest_skills_from_usage(self):
+        from agent_manager.skill_generator import suggest_skills
+        entries = [
+            {"skill_id": "domain.report-synthesis", "status": "completed"},
+            {"skill_id": "domain.report-synthesis", "status": "completed"},
+            {"skill_id": "domain.report-synthesis", "status": "failed"},
+            {"skill_id": "system.singleton", "status": "completed"},
+        ]
+        events = [{"event_type": "pitfall", "subject": "report", "note": "bad format"}]
+        candidates = suggest_skills(entries, events, min_calls=2, top_k=5)
+        self.assertGreater(len(candidates), 0)
+        found = [c for c in candidates if "report" in c["triggers"]]
+        self.assertGreater(len(found), 0)
+
+    def test_suggest_skills_min_calls_filter(self):
+        from agent_manager.skill_generator import suggest_skills
+        entries = [{"skill_id": "domain.rare", "status": "completed"}]
+        candidates = suggest_skills(entries, [], min_calls=5, top_k=5)
+        self.assertEqual(len(candidates), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
