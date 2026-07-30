@@ -54,6 +54,7 @@
 - 2026-07-30: rebuilt eight granite.wiki derived files from normalized pipeline outputs, archived the prior versions, and reduced actionable stale/drift/duplicate findings to zero; 92 provenance/reference findings remain.
 - 2026-07-30: v0.3.0 Host Integration added `LocalAgentHost`, provider-neutral run/resume handling, optional correction capture, CLI coverage, and 3 regression tests.
 - 2026-07-30: v0.4.0 runtime accounting added ignored `UsageLedger` metrics, idempotent run/skill counting, paused-to-completed upgrades, and 2 regression tests; full suite now has 42 passing tests.
+- 2026-07-30: v0.5.0 Provider/Tool boundary added provider-neutral interfaces, MockProvider, dry-run tools, explicit EffectGate approval, CLI smoke flows, and 2 regression tests; full suite now has 44 passing tests.
 
 ## Gradual local-agent adoption
 
@@ -63,7 +64,8 @@
 - [x] Record feedback as reversible profile/project candidates.
 - [x] Generate a combined feedback, lifecycle, and entropy report.
 - [x] Connect one real local-agent host to `adapter prepare` and `adapter run`.
-- [ ] Add a provider/tool adapter behind the public-neutral boundary.
+- [x] Define provider/tool adapter boundary with mock and dry-run implementations.
+- [ ] Add a production provider/tool adapter behind the public-neutral boundary.
 - [ ] Pilot one low-risk task and review its trace and feedback candidate.
 - [ ] Promote only reviewed feedback into project rules.
 

@@ -13,6 +13,8 @@ from .router import Router
 from .file_audit import run_local_audit
 from .host import HostTaskResult, LocalAgentHost
 from .metrics import UsageEntry, UsageLedger
+from .provider import MockProvider, ProviderAdapter, ProviderResponse, ProviderUnavailable
+from .tooling import CallableToolAdapter, DryRunToolAdapter, EffectGate, ExternalEffectDenied, ToolAdapter, ToolResult
 
 __all__ = [
     "ExecutionContext",
@@ -44,4 +46,14 @@ __all__ = [
     "LocalAgentHost",
     "UsageEntry",
     "UsageLedger",
+    "MockProvider",
+    "ProviderAdapter",
+    "ProviderResponse",
+    "ProviderUnavailable",
+    "CallableToolAdapter",
+    "DryRunToolAdapter",
+    "EffectGate",
+    "ExternalEffectDenied",
+    "ToolAdapter",
+    "ToolResult",
 ]

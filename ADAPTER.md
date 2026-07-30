@@ -13,7 +13,7 @@ report()        -> feedback + lifecycle + entropy signals + metrics
 decide(...)     -> entity operation proposal: script / skill / human_review
 ```
 
-The adapter does not call a model, own provider credentials, or silently change project rules. The host Agent remains responsible for interpretation, model calls, tools, approvals, and final user communication.
+The adapter does not call a model, own provider credentials, or silently change project rules. The host Agent remains responsible for interpretation, model calls, tools, approvals, and final user communication. Version 0.5.0 exposes provider and tool interfaces without selecting a production provider or enabling external effects by default.
 
 ## Quick start
 
@@ -23,6 +23,8 @@ From the repository root:
 python scripts/agent-manager.py adapter prepare --task "summarize a report"
 python scripts/agent-manager.py adapter run --task "summarize a report"
 python scripts/agent-manager.py adapter host-run --task "summarize a report" --feedback-subject tone --feedback-note "use concise language" --feedback-confidence 0.9
+python scripts/agent-manager.py adapter provider-mock --prompt "hello"
+python scripts/agent-manager.py adapter tool-dry-run --tool "write_file"
 python scripts/agent-manager.py adapter feedback --event-type correction --scope project --subject tone --note "use concise language" --confidence 0.9
 python scripts/agent-manager.py adapter report
 ```

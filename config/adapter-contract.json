@@ -15,6 +15,14 @@
       "input": {"task": "string", "inputs": "object", "checkpoint": "optional path", "correction": "optional reversible FeedbackEvent"},
       "output": {"run": "AdapterRun", "feedback": "optional FeedbackEvent", "provider_calls": "none"}
     },
+    "provider_complete": {
+      "input": {"prompt": "string", "metadata": "optional object"},
+      "output": {"response": "ProviderResponse", "credentials_owned_by": "host"}
+    },
+    "tool_invoke": {
+      "input": {"tool": "string", "arguments": "object", "dry_run": "boolean, default true", "effect_gate": "optional EffectGate"},
+      "output": {"result": "ToolResult", "external_effect_default": "false"}
+    },
     "decide": {
       "input": {"entity_file": "JSON object, entity array, or object with entities[]"},
       "output": {"proposals": "ExecutionProposal[]", "counts": "script|skill|human_review", "human_gate_required": "boolean"}

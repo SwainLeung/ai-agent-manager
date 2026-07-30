@@ -14,6 +14,8 @@ from agent_manager.executor import ProposalExecutor
 from agent_manager.file_audit import run_local_audit
 from agent_manager.host import LocalAgentHost
 from agent_manager.metrics import UsageLedger
+from agent_manager.provider import MockProvider, ProviderUnavailable
+from agent_manager.tooling import CallableToolAdapter, EffectGate, ExternalEffectDenied
 from agent_manager.promotion import PromotionLedger
 from agent_manager.registry_apply import RegistryApplyError, RegistryApplier
 from agent_manager.entropy import audit
@@ -578,6 +580,43 @@ class AgentManagerTests(unittest.TestCase):
         self.assertEqual(report["status_counts"]["completed"], 1)
         self.assertEqual(metrics["runtime_calls"], 1)
         self.assertEqual(metrics["runtime_successes"], 1)
+
+    def test_provider_and_tool_boundaries_are_explicitly_gated(self):
+        calls = []
+        provider = MockProvider()
+        tools = CallableToolAdapter({"write": lambda arguments: calls.append(arguments) or {"written": True}})
+        with tempfile.TemporaryDirectory() as directory:
+            host = LocalAgentHost.for_project(
+                Path(__file__).parents[1],
+                state_dir=directory,
+                provider=provider,
+                tool_adapter=tools,
+            )
+            response = host.complete("hello provider", metadata={"mode": "test"})
+            self.assertEqual(response.provider, "mock")
+            self.assertEqual(len(provider.calls), 1)
+
+            dry_run = host.invoke_tool("write", {"value": 1})
+            self.assertTrue(dry_run.dry_run)
+            self.assertFalse(dry_run.external_effect)
+            self.assertEqual(calls, [])
+
+            with self.assertRaises(ExternalEffectDenied):
+                host.invoke_tool("write", {"value": 1}, dry_run=False)
+            applied = host.invoke_tool(
+                "write",
+                {"value": 1},
+                dry_run=False,
+                gate=EffectGate(allow_external=True, approved=True),
+            )
+            self.assertTrue(applied.external_effect)
+            self.assertEqual(calls, [{"value": 1}])
+
+    def test_host_without_provider_rejects_provider_call(self):
+        with tempfile.TemporaryDirectory() as directory:
+            host = LocalAgentHost.for_project(Path(__file__).parents[1], state_dir=directory)
+            with self.assertRaises(ProviderUnavailable):
+                host.complete("provider unavailable")
 
     def test_adapter_report_exposes_runtime_metrics_and_projected_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:

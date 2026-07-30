@@ -1,8 +1,8 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 复核日期：2026-07-30
-> 项目版本：0.4.0
-> 测试通过：42/42 单元测试通过，public-check 通过
+> 项目版本：0.5.0
+> 测试通过：44/44 单元测试通过，public-check 通过
 > Git 状态：工作区干净；本地 `main` 已初始化并配置 `origin`，远程同步另行执行
 
 ---
@@ -14,7 +14,7 @@
 - `src/agent_manager/execution.py` 提供 Graph Scheduler、ExecutionContext、retry、fallback、checkpoint 和 max-step 保护。
 - `src/agent_manager/recorder.py` 提供结构化 JSON trace，记录 run、node、failure、checkpoint 和 completion 事件。
 - CLI 新增 `graph run` 与 `trace show`。
-- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 42 个单元测试通过。
+- 示例 Graph 已实际执行成功，旧版示例产生 12 条 trace 事件；当前回归测试总计 44 个单元测试通过。
 
 本版本仍暂不实现自动反思器、规则蒸馏器和 Skill→Script 自动编译，这些保留为后续版本。
 
@@ -53,7 +53,14 @@
 - 新增被忽略的 `UsageLedger`，按 `run_id + skill_id` 记录运行次数、成功次数和 paused/completed/failed 状态。
 - retry 只计一次；paused checkpoint 恢复为 completed 时升级原记录，不产生重复调用。
 - `adapter report` 新增 runtime metrics，并将有效计量投影到 lifecycle 与 entropy 计算；公共 registry 不被运行时遥测改写。
-- 新增计量持久化、幂等和 lifecycle projection 回归测试；当前完整测试数为 42。
+- 新增计量持久化、幂等和 lifecycle projection 回归测试；v0.4 阶段完整测试数为 42。
+
+### v0.5.0 Provider/Tool Boundary 增量
+
+- 新增 provider-neutral `ProviderAdapter`、`ProviderResponse` 和确定性的 `MockProvider`。
+- 新增 `ToolAdapter`、`DryRunToolAdapter`、`CallableToolAdapter` 与 `EffectGate`；工具默认 dry-run，真实外部效果必须显式批准。
+- `LocalAgentHost` 支持注入 provider/tool adapter，但不持有凭据、不默认写回、不绕过 human approval。
+- 新增 `adapter provider-mock`、`adapter tool-dry-run` CLI 冒烟流程和边界回归测试。
 
 ---
 
@@ -315,12 +322,12 @@
 |--------|----------|----------|----------|----------|-----------|
 | ① 双金字塔 | ✅ | ✅ | ✅ | ✅ | **75%** — 数据模型完整，自动升级有，但长尾流水线和冷热淘汰无 |
 | ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **80%** — 生命周期、promotion、registry apply/rollback 已有，自动修复和灰度发布仍缺 |
-| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **82%** — 决策矩阵、执行器和人工门控已有，自动固化仍缺 |
+| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **85%** — 决策矩阵、执行器、人工门控和 provider/tool 边界已有，自动固化仍缺 |
 | ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **70%** — 反馈持久化、候选聚合和 CLI 已有，截获/反思/注入仍缺 |
 | ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **70%** — registry、usage metrics 与本地文件只读审计已有，自动清理/压缩仍缺 |
 | ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **70%** — 执行、恢复、计量、门控、反馈和审计闭环已有，自动反思与清理仍缺 |
 | ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
-| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 42 测试 ✅ | **~80%（阶段性估算）** |
+| **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 44 测试 ✅ | **~82%（阶段性估算）** |
 
 ### 按代码量估算
 
@@ -328,9 +335,9 @@
 |------|--------|------|
 | 理论笔记（本地） | 7 | ✅ 完成 |
 | 文档蒸馏（公开） | 7 | ✅ 完成 |
-| 核心 Python 模块 | 13+ | ✅ 路由、图执行、反馈、实体执行、promotion、registry apply、文件审计、usage metrics 可运行 |
+| 核心 Python 模块 | 15+ | ✅ 路由、图执行、反馈、实体执行、promotion、registry apply、文件审计、usage metrics、provider/tool boundary 可运行 |
 | CLI 脚本 | 2 | ✅ registry/route/graph/trace/adapter/audit/lifecycle 等命令可用 |
-| 单元测试 | 1（含42个测试） | ✅ 全部通过 |
+| 单元测试 | 1（含44个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
 | Git 提交 | 已初始化 | ✅ 当前版本与报告一并提交；工作区状态按发布流程检查 |
@@ -464,7 +471,8 @@ graph TB
 | 优先级 | 方向 | 当前完成度 |
 |--------|------|-----------|
 | 🔴 P0 | 运行时 Skill.calls/successes 计量 | 100% |
-| 🔴 P0 | Provider-specific 工具适配 | 0% |
+| 🔴 P0 | Provider/Tool contract + mock/dry-run | 100% |
+| 🔴 P0 | Provider-specific production adapter | 0% |
 | 🟡 P1 | Skill→Script 自动固化引擎 | 0% |
 | 🟡 P1 | 反馈拦截层 + 反思器 + 规则蒸馏器 | 0% |
 | 🟢 P2 | 记忆压缩与 TTL 清理 | 0% |
@@ -474,4 +482,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager 0.4.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计和 `LocalAgentHost` 均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 provider-specific 工具适配、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 0.5.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量和 provider/tool 安全边界的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 provider-specific production adapter、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。

@@ -74,6 +74,35 @@ paused run can upgrade to `completed` without double-counting. The public
 registry is treated as a baseline; `adapter report` projects runtime deltas
 onto lifecycle and entropy calculations and returns a `metrics` object.
 
+### Provider and tool boundaries
+
+Version 0.5.0 keeps provider calls and external tools behind host-injected
+interfaces:
+
+```python
+from agent_manager.host import LocalAgentHost
+from agent_manager.provider import MockProvider
+from agent_manager.tooling import CallableToolAdapter, EffectGate
+
+host = LocalAgentHost.for_project(
+    ".",
+    provider=MockProvider(),
+    tool_adapter=CallableToolAdapter({"write": lambda args: {"ok": True}}),
+)
+response = host.complete("hello")
+preview = host.invoke_tool("write", {"value": 1})
+approved = host.invoke_tool(
+    "write",
+    {"value": 1},
+    dry_run=False,
+    gate=EffectGate(allow_external=True, approved=True),
+)
+```
+
+Tools default to dry-run. A non-dry-run call is rejected unless both
+`allow_external` and `approved` are true. Credentials and provider
+authentication remain entirely outside the public package.
+
 ## 4. Minimal Python integration
 
 ```python

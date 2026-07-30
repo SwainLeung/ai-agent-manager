@@ -17,6 +17,13 @@
 - Added segmented atomic checkpoint writes for large proposal batches, avoiding per-proposal O(n²) checkpoint I/O.
 - Added read-only local file Anti-entropy audit with provenance, freshness, duplicate, ownership, reference-integrity, merge-candidate, and delete-candidate reports.
 
+## [0.5.0] - 2026-07-30
+
+- Added provider-neutral `ProviderAdapter` and deterministic `MockProvider` interfaces.
+- Added `ToolAdapter`, `DryRunToolAdapter`, `CallableToolAdapter`, and explicit `EffectGate` approval for external effects.
+- Integrated provider completion and tool invocation into `LocalAgentHost` without owning credentials or enabling writeback by default.
+- Added `adapter provider-mock` and `adapter tool-dry-run` smoke flows and regression coverage for denied and approved effects.
+
 ## [0.4.0] - 2026-07-30
 
 - Added an ignored runtime `UsageLedger` for per-run Skill calls/successes and status metrics.

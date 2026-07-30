@@ -6,7 +6,9 @@ from typing import Any, Mapping
 
 from .adapter import AdapterRun, LocalAgentAdapter
 from .models import FeedbackEvent
+from .provider import ProviderAdapter, ProviderResponse, ProviderUnavailable
 from .router import RouteSignals
+from .tooling import DryRunToolAdapter, EffectGate, ToolAdapter, ToolResult
 
 
 @dataclass(frozen=True)
@@ -33,8 +35,16 @@ class LocalAgentHost:
     adapter's route, graph, checkpoint, trace, and reversible feedback flows.
     """
 
-    def __init__(self, adapter: LocalAgentAdapter):
+    def __init__(
+        self,
+        adapter: LocalAgentAdapter,
+        *,
+        provider: ProviderAdapter | None = None,
+        tool_adapter: ToolAdapter | None = None,
+    ):
         self.adapter = adapter
+        self.provider = provider
+        self.tool_adapter = tool_adapter or DryRunToolAdapter()
 
     @classmethod
     def for_project(
@@ -42,8 +52,34 @@ class LocalAgentHost:
         root: str | Path,
         *,
         state_dir: str | Path = ".agent-manager",
+        provider: ProviderAdapter | None = None,
+        tool_adapter: ToolAdapter | None = None,
     ) -> "LocalAgentHost":
-        return cls(LocalAgentAdapter.for_project(root, state_dir=state_dir))
+        return cls(
+            LocalAgentAdapter.for_project(root, state_dir=state_dir),
+            provider=provider,
+            tool_adapter=tool_adapter,
+        )
+
+    def complete(
+        self,
+        prompt: str,
+        *,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> ProviderResponse:
+        if self.provider is None:
+            raise ProviderUnavailable("no provider adapter was injected")
+        return self.provider.complete(prompt, metadata=metadata)
+
+    def invoke_tool(
+        self,
+        tool: str,
+        arguments: Mapping[str, Any] | None = None,
+        *,
+        dry_run: bool = True,
+        gate: EffectGate | None = None,
+    ) -> ToolResult:
+        return self.tool_adapter.invoke(tool, arguments, dry_run=dry_run, gate=gate)
 
     def run_task(
         self,

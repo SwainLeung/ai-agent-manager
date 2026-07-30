@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
 import json
 import sys
 from pathlib import Path
@@ -16,6 +17,8 @@ from agent_manager.entropy import audit
 from agent_manager.adapter import LocalAgentAdapter
 from agent_manager.file_audit import run_local_audit
 from agent_manager.host import LocalAgentHost
+from agent_manager.provider import MockProvider
+from agent_manager.tooling import DryRunToolAdapter
 from agent_manager.execution import GraphScheduler, RetryPolicy
 from agent_manager.graph import GraphDefinition
 from agent_manager.lifecycle import propose
@@ -192,6 +195,18 @@ def cmd_adapter_host_run(args: argparse.Namespace) -> int:
     )
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
     return 0 if result.run.context.status == "completed" else 1
+
+
+def cmd_adapter_provider_mock(args: argparse.Namespace) -> int:
+    response = MockProvider().complete(args.prompt, metadata={"source": "cli-smoke"})
+    print(json.dumps(asdict(response), ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_tool_dry_run(args: argparse.Namespace) -> int:
+    result = DryRunToolAdapter().invoke(args.tool, parse_input(args.arguments), dry_run=True)
+    print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
+    return 0
 
 
 def cmd_adapter_decide(args: argparse.Namespace) -> int:
@@ -396,6 +411,15 @@ def build_parser() -> argparse.ArgumentParser:
     for option in ("structured", "deterministic", "low_latency", "creative"):
         host_run.add_argument(f"--{option.replace('_', '-')}", action="store_true", dest=option)
     host_run.set_defaults(func=cmd_adapter_host_run)
+
+    provider_mock = adapter_sub.add_parser("provider-mock")
+    provider_mock.add_argument("--prompt", required=True)
+    provider_mock.set_defaults(func=cmd_adapter_provider_mock)
+
+    tool_dry_run = adapter_sub.add_parser("tool-dry-run")
+    tool_dry_run.add_argument("--tool", required=True)
+    tool_dry_run.add_argument("--arguments", default="{}", help="JSON object or path to a JSON object")
+    tool_dry_run.set_defaults(func=cmd_adapter_tool_dry_run)
 
     decide = adapter_sub.add_parser("decide")
     decide.add_argument("--entity-file", required=True, type=Path)
