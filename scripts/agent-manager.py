@@ -274,6 +274,30 @@ def cmd_adapter_sandbox(args: argparse.Namespace) -> int:
     return 0 if result["status"] == "passed" else 1
 
 
+def cmd_adapter_change_propose(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).propose_registry_change(args.candidate_file, args.proposal_file, preview_file=args.preview_file, registry_path=args.registry_file)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_change_approve(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).approve_registry_change(args.proposal_file, args.note, registry_path=args.registry_file)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_change_apply(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).apply_registry_change(args.proposal_file, write=args.write, registry_path=args.registry_file)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_change_rollback(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).rollback_registry_change(args.proposal_file, write=args.write, registry_path=args.registry_file)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_adapter_promote_propose(args: argparse.Namespace) -> int:
     payload = json.loads(args.checkpoint.read_text(encoding="utf-8-sig"))
     records = payload.get("records", []) if isinstance(payload, dict) else payload
@@ -523,6 +547,34 @@ def build_parser() -> argparse.ArgumentParser:
     sandbox.add_argument("--output", type=Path)
     sandbox.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     sandbox.set_defaults(func=cmd_adapter_sandbox)
+
+    change = adapter_sub.add_parser("change")
+    change_sub = change.add_subparsers(dest="change_command", required=True)
+    change_propose = change_sub.add_parser("propose")
+    change_propose.add_argument("--candidate-file", required=True, type=Path)
+    change_propose.add_argument("--proposal-file", required=True, type=Path)
+    change_propose.add_argument("--preview-file", type=Path)
+    change_propose.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    change_propose.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    change_propose.set_defaults(func=cmd_adapter_change_propose)
+    change_approve = change_sub.add_parser("approve")
+    change_approve.add_argument("--proposal-file", required=True, type=Path)
+    change_approve.add_argument("--note", required=True)
+    change_approve.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    change_approve.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    change_approve.set_defaults(func=cmd_adapter_change_approve)
+    change_apply = change_sub.add_parser("apply")
+    change_apply.add_argument("--proposal-file", required=True, type=Path)
+    change_apply.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    change_apply.add_argument("--write", action="store_true")
+    change_apply.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    change_apply.set_defaults(func=cmd_adapter_change_apply)
+    change_rollback = change_sub.add_parser("rollback")
+    change_rollback.add_argument("--proposal-file", required=True, type=Path)
+    change_rollback.add_argument("--registry-file", type=Path, default=ROOT / "config" / "skill-registry.json")
+    change_rollback.add_argument("--write", action="store_true")
+    change_rollback.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    change_rollback.set_defaults(func=cmd_adapter_change_rollback)
 
     promote = adapter_sub.add_parser("promote")
     promote_sub = promote.add_subparsers(dest="promote_command", required=True)

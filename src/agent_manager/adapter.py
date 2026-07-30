@@ -19,6 +19,7 @@ from .metrics import UsageLedger
 from .metacognition import FeedbackInterceptor, MetaCognitionEngine
 from .recorder import ExecutionRecorder
 from .registry import SkillRegistry
+from .registry_proposal import RegistryChangeWorkflow
 from .rules import RuleStore
 from .router import RouteSignals, Router
 from .sandbox import ScriptSandbox
@@ -292,6 +293,25 @@ class LocalAgentAdapter:
         drift_tolerance: float = 0.05,
     ) -> dict[str, Any]:
         return ScriptSandbox().replay(candidate, entities, drift_tolerance=drift_tolerance).to_dict()
+
+    def propose_registry_change(self, candidate_file: str | Path, proposal_file: str | Path, *, preview_file: str | Path | None = None, registry_path: str | Path | None = None) -> dict[str, Any]:
+        candidate = json.loads(Path(candidate_file).read_text(encoding="utf-8-sig"))
+        target = Path(registry_path) if registry_path else self.registry_path
+        proposal = RegistryChangeWorkflow(target).propose(candidate, proposal_file, preview_path=preview_file)
+        return {"proposal": proposal.to_dict(), "registry_mutated": False}
+
+    def approve_registry_change(self, proposal_file: str | Path, note: str, *, registry_path: str | Path | None = None) -> dict[str, Any]:
+        target = Path(registry_path) if registry_path else self.registry_path
+        proposal = RegistryChangeWorkflow(target).approve(proposal_file, note)
+        return {"proposal": proposal.to_dict(), "registry_mutated": False}
+
+    def apply_registry_change(self, proposal_file: str | Path, *, write: bool = False, registry_path: str | Path | None = None) -> dict[str, Any]:
+        target = Path(registry_path) if registry_path else self.registry_path
+        return RegistryChangeWorkflow(target).apply(proposal_file, write=write)
+
+    def rollback_registry_change(self, proposal_file: str | Path, *, write: bool = False, registry_path: str | Path | None = None) -> dict[str, Any]:
+        target = Path(registry_path) if registry_path else self.registry_path
+        return RegistryChangeWorkflow(target).rollback(proposal_file, write=write)
 
     def report(self) -> dict[str, Any]:
         store = FeedbackStore.load(self.feedback_path)

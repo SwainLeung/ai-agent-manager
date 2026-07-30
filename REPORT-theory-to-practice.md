@@ -1,9 +1,9 @@
 # AI Agent Manager — 理论到实践映射报告
 
 > 复核日期：2026-07-30
-> 项目版本：0.9.0.dev0
+> 项目版本：1.0.0
 > 测试通过：54/54 单元测试通过，public-check 通过
-> Git 状态：0.9.0 开发变更在工作区，尚未提交；运行态仍保存在被忽略的 `.agent-manager/`
+> Git 状态：v1.0.0 已发布推送；运行态仍保存在被忽略的 `.agent-manager/`
 
 ---
 
@@ -104,6 +104,15 @@
 9. [总体架构 Mermaid 图](#9-总体架构-mermaid-图)
 10. [推送前待办清单](#10-推送前待办清单)
 
+
+### v0.9.0 Registry Proposal 增量
+
+- 新增 `RegistryChangeWorkflow`，对 Skill-Script 候选提供 propose-approve-apply-rollback 的完整受控注册表变更流程。
+- 新增 `adapter change propose/approve/apply/rollback` CLI，每一步支持 SHA256 前后校验、preview 预览、backup 保护和显式 write 门控。
+- approve 必须在 proposal 未漂移且 status=proposed 时由人工审核确认；apply 只在 approved 状态下执行，dry-run 为默认行为；rollback 仅在 applied 且有 backup 且注册表未被外部修改时有效。
+- 完整测试达到 54 个，覆盖人工审批拒绝、dry-run、write 和 rollback。
+
+---
 ---
 
 ## 1. 双金字塔模型 (Dual Pyramid)
@@ -162,7 +171,7 @@
 | 动态治理蒸馏文档 | `docs/theory/02-dynamic-governance.md` | **100%** | 已输出 |
 | 自动修复提案 → 版本测试闭环 | `ProposalExecutor` + 测试套件 | **60%** | 有确定性 Script 执行、checkpoint/resume 与回归测试；自动生成修复提案仍未实现 |
 | **缺失：金丝雀/灰度发布技能** | 未实现 | **0%** | 理论提及但无实现 |
-| 技能/注册表版本回滚机制 | `registry_apply.py` + manifest/rollback | **70%** | 已支持版本化 registry apply、备份、漂移检测和 rollback；尚未覆盖 Skill 实现级灰度回滚 |
+| 技能/注册表版本回滚机制 | `registry_apply.py` + `registry_proposal.py` + manifest/rollback | **85%** | 已支持版本化 registry apply、proposal 核准、backup 保护和注册表层 rollback；Skill 实现级灰度回滚仍缺 |
 
 ---
 
@@ -189,7 +198,7 @@
 | 决策矩阵打分逻辑 | `router.py` `decide()` | **100%** | structured+deterministic 加分给 script；creative 加分给 skill |
 | CLI 路由测试 | `scripts/agent-manager.py` `route` | **100%** | 已验证，结构化任务倾向 script |
 | 决策矩阵蒸馏文档 | `docs/theory/03-skills-vs-scripts.md` | **100%** | 已输出 |
-| **缺失：Skill → Script 自动固化引擎** | 未实现 | **0%** | 理论 "编译器 + 沙箱验证" 未实现 |
+| Skill → Script 受控固化闭环 | `solidification.py` + `sandbox.py` + `registry_proposal.py` | **80%** | 已实现 solidification 候选生成→sandbox 回放→proposal 核准→apply 写入的完整人工审核固化路径；自动注册仍由人工门控 |
 | Script 失败回退 Skill 机制 | `execution.py` fallback + graph edges | **60%** | 图运行时支持 error-edge fallback；provider-specific Script→Skill 转换仍由 host 负责 |
 | **缺失：问题矩阵 Agent 内化自评判** | 未实现 | **0%** | 当前 Router 需外部传入 signals，非 Agent 内化 |
 
@@ -286,7 +295,7 @@
 | - 稳定性评估（lifecycle.propose） | `lifecycle.py` | **100%** | 基于调用量和成功率 |
 | - Skill→Script 生成 | `solidification.py` `adapter.py` | **80%** | 按 evidence threshold 生成 candidate descriptor，不自动写回 |
 | - 沙箱回归测试 | `sandbox.py` + `tests/test_agent_manager.py` | **85%** | 确定性 fixture replay、失败报告、drift 与 mutated candidate 拒绝已实现；OS 级隔离仍未实现 |
-| - Script 注册与路由更新 | `registry.py` 已支持注册 | **50%** | 注册表支持，但自动更新无 |
+| - Script 注册与路由更新 | `registry.py` + `registry_proposal.py` + `adapter change` | **80%** | proposal→approve→apply→rollback 受控流程完整，人工门控保留 |
 | **3. 用户自适应闭环** | | | |
 | - 反馈事件存储 | `feedback.py` | **100%** | 完整实现 |
 | - 候选规则聚合 | `feedback.py` candidates() | **100%** | |
@@ -348,11 +357,11 @@
 | 理论域 | 理论文件 | 文档蒸馏 | 核心代码 | 测试覆盖 | 完整度评估 |
 |--------|----------|----------|----------|----------|-----------|
 | ① 双金字塔 | ✅ | ✅ | ✅ | ✅ | **75%** — 数据模型完整，自动升级有，但长尾流水线和冷热淘汰无 |
-| ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **80%** — 生命周期、promotion、registry apply/rollback 已有，自动修复和灰度发布仍缺 |
-| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **93%** — 决策矩阵、执行器、候选固化和确定性沙箱回放已有，自动注册和 OS 级隔离仍缺 |
+| ② 动态治理 | ✅ | ✅ | ✅ | ✅ | **85%** — 生命周期、promotion ledger、registry apply/rollback 和 proposal workflow 已有，自动修复和灰度发布仍缺 |
+| ③ Skills vs Scripts | ✅ | ✅ | ✅ | ✅ | **93%** — 决策矩阵、执行器、solidification 候选生成、sandbox 回放和 proposal 受控写入完整闭环已有，OS 级隔离仍缺 |
 | ④ 元认知与反馈 | ✅ | ✅ | ✅ | ✅ | **92%** — 截获、反思、候选蒸馏、审核启用和撤销已有，provider prompt 应用仍由 host 负责 |
 | ⑤ 逆熵治理 | ✅ | ✅ | ✅ | ✅ | **70%** — registry、usage metrics 与本地文件只读审计已有，自动清理/压缩仍缺 |
-| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **84%** — 执行、恢复、计量、门控、反馈、规则审核和候选固化闭环已有，自动注册与清理仍缺 |
+| ⑥ Loop Engineering | ✅ | ✅ | ✅ | ✅ | **84%** — 执行、恢复、计量、门控、反馈、规则审核和候选固化的受控闭环已有，清理仍缺 |
 | ⑦ Graph Engineering | ✅ | ✅ | ✅ | ✅ | **82%** — Scheduler、trace、retry、fallback、checkpoint/resume 已有，子图/可视化/动态图仍缺 |
 | **项目整体** | 7/7 | 7/7 | 7/7 有核心 | 54 测试 ✅ | **~90%（阶段性估算）** |
 
@@ -367,7 +376,7 @@
 | 单元测试 | 1（含54个测试） | ✅ 全部通过 |
 | 配置文件 | 2 | ✅ 有效 |
 | CI 模板 | 1 | 🟡 已创建但未验证 |
-| Git 提交 | 已初始化 | ✅ 0.7.0/0.8.0 功能提交与报告同步已推送；0.9.0 开发变更待提交 |
+| Git 提交 | 已初始化 | ✅ v1.0.0 已发布推送至 origin |
 
 ---
 
@@ -510,4 +519,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager 0.9.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界、反馈元认知、审核式规则管理、Skill→Script 候选固化和确定性沙箱回放的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、GovernedRule/RuleStore、SkillScriptCompiler、ScriptSandbox、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前重点是 provider-specific production adapter、候选 Script 的自动注册与回滚、OS 级隔离、host 侧规则应用、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 1.0.0 已从治理契约参考实现推进为可执行、可审计、可恢复、可由宿主接入且具备运行计量、provider/tool 安全边界、反馈元认知、审核式规则管理、Skill→Script 候选固化和确定性沙箱回放的本地控制平面：Router、Graph Scheduler、trace、UsageLedger、FeedbackInterceptor、Reflector、RuleDistiller、GovernedRule/RuleStore、SkillScriptCompiler、ScriptSandbox、RegistryChangeWorkflow、实体级 Script/Skill/human-review 门控、promotion/rollback、只读文件审计、`LocalAgentHost`、MockProvider 和 dry-run/EffectGate 均已有可验证实现。当前重点是 provider-specific production adapter、OS 级隔离、host 侧规则应用、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。

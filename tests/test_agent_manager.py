@@ -19,6 +19,7 @@ from agent_manager.provider import MockProvider, ProviderUnavailable
 from agent_manager.tooling import CallableToolAdapter, EffectGate, ExternalEffectDenied
 from agent_manager.promotion import PromotionLedger
 from agent_manager.registry_apply import RegistryApplyError, RegistryApplier
+from agent_manager.registry_proposal import RegistryChangeWorkflow, RegistryProposalError
 from agent_manager.entropy import audit
 from agent_manager.execution import GraphScheduler, NodeResult, RetryPolicy
 from agent_manager.feedback import FeedbackStore
@@ -773,6 +774,51 @@ class AgentManagerTests(unittest.TestCase):
         candidate["registry_mutated"] = True
         with self.assertRaises(SandboxError):
             ScriptSandbox().replay(candidate, [])
+
+    def test_registry_change_workflow_requires_human_approval_and_supports_rollback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            registry = root / "registry.json"
+            proposal_path = root / "proposal.json"
+            preview_path = root / "preview.json"
+            registry.write_text(json.dumps({"schema_version": 1, "skills": []}) + "\n", encoding="utf-8")
+            original = registry.read_bytes()
+            candidate = {
+                "candidate": {
+                    "id": "domain.report-synthesis.script.summarize",
+                    "source_skill_id": "domain.report-synthesis",
+                    "operation": "summarize",
+                    "layer": "domain",
+                    "kind": "script",
+                    "frequency": "warm",
+                    "version": "0.4.0",
+                    "status": "candidate",
+                    "triggers": ["report", "summarize"],
+                    "description": "reviewed candidate",
+                    "calls": 3,
+                    "successes": 3,
+                    "success_rate": 1.0,
+                    "last_used": None,
+                    "registry_mutated": False,
+                }
+            }
+            workflow = RegistryChangeWorkflow(registry)
+            proposal = workflow.propose(candidate, proposal_path, preview_path=preview_path)
+            self.assertEqual(proposal.status, "proposed")
+            self.assertTrue(preview_path.exists())
+            self.assertEqual(registry.read_bytes(), original)
+            with self.assertRaises(RegistryProposalError):
+                workflow.apply(proposal_path)
+            approved = workflow.approve(proposal_path, "human reviewed temporary preview")
+            self.assertEqual(approved.status, "approved")
+            dry_run = workflow.apply(proposal_path)
+            self.assertFalse(dry_run["registry_mutated"])
+            applied = workflow.apply(proposal_path, write=True)
+            self.assertTrue(applied["registry_mutated"])
+            self.assertIn("domain.report-synthesis.script.summarize", registry.read_text(encoding="utf-8"))
+            rolled_back = workflow.rollback(proposal_path, write=True)
+            self.assertEqual(rolled_back["mode"], "explicit-rollback")
+            self.assertEqual(registry.read_bytes(), original)
 
     def test_adapter_report_exposes_runtime_metrics_and_projected_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:

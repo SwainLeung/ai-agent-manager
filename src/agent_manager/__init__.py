@@ -6,6 +6,7 @@ from .decision import DecisionMatrix, ExecutionProposal
 from .executor import ExecutionRecord, ProposalExecutor
 from .promotion import PromotionCandidate, PromotionLedger
 from .registry_apply import RegistryApplyError, RegistryApplier, RegistryApplyManifest, RegistryPatch
+from .registry_proposal import RegistryChangeProposal, RegistryChangeWorkflow, RegistryProposalError
 from .execution import ExecutionContext, GraphExecutionError, GraphScheduler, NodeResult, RetryPolicy
 from .recorder import ExecutionRecorder, TraceEvent
 from .registry import SkillRegistry
@@ -40,6 +41,9 @@ __all__ = [
     "RegistryApplier",
     "RegistryApplyManifest",
     "RegistryPatch",
+    "RegistryChangeProposal",
+    "RegistryChangeWorkflow",
+    "RegistryProposalError",
     "NodeResult",
     "RetryPolicy",
     "Router",
