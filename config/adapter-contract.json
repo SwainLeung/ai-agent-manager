@@ -5,7 +5,7 @@
   "operations": {
     "prepare": {
       "input": {"task": "string", "signals": "optional RouteSignals", "top_k": "integer >= 1"},
-      "output": {"task": "string", "decisions": "RouteDecision[]"}
+      "output": {"task": "string", "decisions": "RouteDecision[]", "active_rules": "approved and enabled rules, exposed as host metadata"}
     },
     "run": {
       "input": {"task": "string", "inputs": "object", "graph": "optional path", "retry": "optional RetryPolicy"},
@@ -48,9 +48,13 @@
       "input": {"event_type": "undo|redo|pitfall|fallback|correction|approval", "scope": "profile|project", "subject": "string", "note": "string", "confidence": "0..1"},
       "output": {"status": "candidate", "storage": "ignored runtime state"}
     },
+    "rules": {
+      "input": {"operation": "sync|list|review|revoke", "rule_id": "required for review/revoke", "decision": "approve|reject", "note": "required for review/revoke"},
+      "output": {"active_rules": "approved and enabled rules exposed to AdapterPlan", "registry_mutated": "false", "storage": "ignored runtime state"}
+    },
     "report": {
       "input": {},
-      "output": {"feedback_candidates": "array", "lifecycle_proposals": "array", "entropy_findings": "array", "metrics": "runtime usage and status metrics", "metacognition": "hypotheses and reversible rule candidates"}
+      "output": {"feedback_candidates": "array", "lifecycle_proposals": "array", "entropy_findings": "array", "metrics": "runtime usage and status metrics", "metacognition": "hypotheses and reversible rule candidates", "rules": "reviewed rule store report"}
     }
   },
   "events": [

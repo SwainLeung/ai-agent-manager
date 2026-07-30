@@ -144,3 +144,25 @@ rejects unapproved candidates or registry ID conflicts. The manifest workflow
 adds a second approval boundary for the exact registry diff. Add `--write`
 only in an explicitly reviewed change workflow; the generated descriptor
 starts as a `candidate` registry entry rather than silently becoming stable.
+
+## Reviewed Profile/Project rules
+
+Feedback analysis produces rule candidates, but candidates are not injected
+automatically. Sync candidates into ignored runtime state, review them
+explicitly, and revoke them when they no longer apply:
+
+```powershell
+python scripts/agent-manager.py adapter rules sync
+python scripts/agent-manager.py adapter rules list
+python scripts/agent-manager.py adapter rules review `
+  --rule-id project-correction-tone `
+  --decision approve `
+  --note "reviewed for this project"
+python scripts/agent-manager.py adapter rules revoke `
+  --rule-id project-correction-tone `
+  --note "behavior changed"
+```
+
+Only approved and enabled rules appear in `AdapterPlan.active_rules`. The host
+Agent decides how to interpret that metadata; the adapter does not alter
+provider prompts, credentials, tools, or the public Skill registry.

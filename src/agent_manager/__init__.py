@@ -16,6 +16,7 @@ from .metrics import UsageEntry, UsageLedger
 from .provider import MockProvider, ProviderAdapter, ProviderResponse, ProviderUnavailable
 from .tooling import CallableToolAdapter, DryRunToolAdapter, EffectGate, ExternalEffectDenied, ToolAdapter, ToolResult
 from .metacognition import FeedbackInterceptor, MetaCognitionEngine, ReflectionHypothesis, RuleCandidate, Reflector, RuleDistiller
+from .rules import GovernedRule, RuleStore
 
 __all__ = [
     "ExecutionContext",
@@ -63,4 +64,6 @@ __all__ = [
     "RuleCandidate",
     "Reflector",
     "RuleDistiller",
+    "GovernedRule",
+    "RuleStore",
 ]

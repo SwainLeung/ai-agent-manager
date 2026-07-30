@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.0] - Unreleased
 
 - Changed max-step interruption from terminal `failed` to resumable `paused`.
 - Preserved `next_node` in paused checkpoints and added regression coverage for CLI/API resume.
@@ -16,6 +16,8 @@
 - Added manifest-aware batch execution with declared-count validation and SHA-256 input fingerprints in resumable checkpoints.
 - Added segmented atomic checkpoint writes for large proposal batches, avoiding per-proposal O(n²) checkpoint I/O.
 - Added read-only local file Anti-entropy audit with provenance, freshness, duplicate, ownership, reference-integrity, merge-candidate, and delete-candidate reports.
+- Added reviewed Profile/Project rule storage with explicit sync, approve/reject, and revoke operations.
+- Exposed only approved and enabled rules in adapter plans; registry mutation and provider prompt injection remain disabled.
 
 ## [0.6.0] - 2026-07-30
 

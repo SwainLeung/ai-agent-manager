@@ -28,6 +28,7 @@ from agent_manager.models import FeedbackEvent, Skill
 from agent_manager.recorder import ExecutionRecorder
 from agent_manager.registry import RegistryError, SkillRegistry
 from agent_manager.router import RouteSignals, Router
+from agent_manager.rules import GovernedRule, RuleStore
 
 
 def skill(**overrides):
@@ -659,6 +660,46 @@ class AgentManagerTests(unittest.TestCase):
             report = adapter.report()
             self.assertEqual(report["metacognition"]["registry_mutated"], False)
             self.assertEqual(report["metacognition"]["rule_candidates"][0]["subject"], "tone")
+
+    def test_rule_store_review_and_revoke_are_persistent_and_reversible(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rules.json"
+            store = RuleStore([
+                GovernedRule(
+                    "project-correction-tone",
+                    "project",
+                    "tone",
+                    "correction",
+                    "adapt-response",
+                    2,
+                    0.9,
+                )
+            ])
+            store.save(path)
+            approved = store.review("project-correction-tone", "approve", "reviewed for this project")
+            self.assertEqual(approved.status, "approved")
+            self.assertEqual(approved.injection, "enabled")
+            store.save(path)
+            loaded = RuleStore.load(path)
+            self.assertEqual(len(loaded.active()), 1)
+            revoked = loaded.revoke("project-correction-tone", "behavior changed")
+            self.assertEqual(revoked.status, "revoked")
+            self.assertEqual(loaded.active(), [])
+
+    def test_adapter_rules_require_explicit_review_before_plan_exposure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = LocalAgentAdapter.for_project(Path(__file__).parents[1], state_dir=directory)
+            adapter.record_feedback("correction", "project", "tone", "use concise language", 0.9)
+            synced = adapter.sync_rules()
+            self.assertEqual(synced["active_rules"], [])
+            candidate_id = synced["rules"][0]["rule_id"]
+            plan = adapter.prepare("summarize a report", RouteSignals(structured=True))
+            self.assertEqual(plan.active_rules, ())
+            reviewed = adapter.review_rule(candidate_id, "approve", "approved after review")
+            self.assertEqual(reviewed["active_rules"][0]["rule_id"], candidate_id)
+            plan = adapter.prepare("summarize a report", RouteSignals(structured=True))
+            self.assertEqual(plan.active_rules[0]["rule_id"], candidate_id)
+            self.assertFalse(adapter.report()["rules"]["registry_mutated"])
 
     def test_adapter_report_exposes_runtime_metrics_and_projected_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -13,6 +13,7 @@ task
   -> selected Skill or Script
   -> execution graph / checkpoint
   -> feedback and telemetry
+  -> reviewed rule store
   -> lifecycle and anti-entropy audit
 ```
 
@@ -28,6 +29,7 @@ task
 - `execution.py`: executes graphs with retries, error-edge fallbacks, checkpoints, and step limits.
 - `recorder.py`: records structured run traces and persists them as JSON.
 - `adapter.py`: bridges a local agent into routing, graph execution, feedback, and improvement reports.
+- `rules.py`: stores reviewed Profile/Project rules and exposes only explicitly enabled rules to adapter plans.
 - `entropy.py`: finds lifecycle stalls, low-success capabilities, and duplicate
   signatures.
 
@@ -56,3 +58,8 @@ keeps public contracts in the repository while placing traces, checkpoints, and
 feedback events in the ignored `.agent-manager/` runtime directory. Feedback is
 reported as a candidate first; it does not silently mutate the registry or
 project rules.
+
+Reviewed Profile/Project rules live under the ignored runtime directory. Rule
+sync creates candidates, review approval enables a reversible rule, and revoke
+disables it. Active rules are exposed as plan metadata for the host Agent; they
+are never silently merged into provider prompts or the public registry.

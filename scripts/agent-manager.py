@@ -307,6 +307,30 @@ def cmd_adapter_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_adapter_rules_sync(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).sync_rules()
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_rules_list(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).rules_report()
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_rules_review(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).review_rule(args.rule_id, args.decision, args.note)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_rules_revoke(args: argparse.Namespace) -> int:
+    result = adapter_from_args(args).revoke_rule(args.rule_id, args.note)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_adapter_audit_files(args: argparse.Namespace) -> int:
     result = run_local_audit(args.root, args.output_dir, stale_days=args.stale_days)
     print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -490,6 +514,26 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--output", type=Path)
     report.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     report.set_defaults(func=cmd_adapter_report)
+
+    rules = adapter_sub.add_parser("rules")
+    rules_sub = rules.add_subparsers(dest="rules_command", required=True)
+    rules_sync = rules_sub.add_parser("sync")
+    rules_sync.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    rules_sync.set_defaults(func=cmd_adapter_rules_sync)
+    rules_list = rules_sub.add_parser("list")
+    rules_list.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    rules_list.set_defaults(func=cmd_adapter_rules_list)
+    rules_review = rules_sub.add_parser("review")
+    rules_review.add_argument("--rule-id", required=True)
+    rules_review.add_argument("--decision", required=True, choices=["approve", "reject"])
+    rules_review.add_argument("--note", required=True)
+    rules_review.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    rules_review.set_defaults(func=cmd_adapter_rules_review)
+    rules_revoke = rules_sub.add_parser("revoke")
+    rules_revoke.add_argument("--rule-id", required=True)
+    rules_revoke.add_argument("--note", required=True)
+    rules_revoke.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    rules_revoke.set_defaults(func=cmd_adapter_rules_revoke)
 
     audit_files = adapter_sub.add_parser("audit-files")
     audit_files.add_argument("--root", required=True, type=Path)

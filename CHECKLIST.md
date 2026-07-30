@@ -56,6 +56,7 @@
 - 2026-07-30: v0.4.0 runtime accounting added ignored `UsageLedger` metrics, idempotent run/skill counting, paused-to-completed upgrades, and 2 regression tests; full suite now has 42 passing tests.
 - 2026-07-30: v0.5.0 Provider/Tool boundary added provider-neutral interfaces, MockProvider, dry-run tools, explicit EffectGate approval, CLI smoke flows, and 2 regression tests; full suite now has 44 passing tests.
 - 2026-07-30: v0.6.0 Feedback metacognition added Interceptor, Reflector, RuleDistiller, candidate-only rule output, and 4 regression tests; full suite now has 48 passing tests.
+- 2026-07-30: v0.7.0 development started with reviewed Profile/Project rule storage, explicit sync/review/revoke CLI flows, plan exposure, and regression coverage.
 
 ## Gradual local-agent adoption
 
@@ -69,6 +70,8 @@
 - [ ] Add a production provider/tool adapter behind the public-neutral boundary.
 - [ ] Pilot one low-risk task and review its trace and feedback candidate.
 - [ ] Promote only reviewed feedback into project rules.
+- [x] Store reviewed Profile/Project rule candidates separately from the public registry.
+- [x] Expose only approved and enabled rules to adapter plans; keep provider prompt injection host-owned.
 
 ## Codex host integration
 

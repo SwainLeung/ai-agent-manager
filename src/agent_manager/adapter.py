@@ -19,6 +19,7 @@ from .metrics import UsageLedger
 from .metacognition import FeedbackInterceptor, MetaCognitionEngine
 from .recorder import ExecutionRecorder
 from .registry import SkillRegistry
+from .rules import RuleStore
 from .router import RouteSignals, Router
 
 
@@ -26,11 +27,13 @@ from .router import RouteSignals, Router
 class AdapterPlan:
     task: str
     decisions: tuple[RouteDecision, ...]
+    active_rules: tuple[dict[str, Any], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "task": self.task,
             "decisions": [asdict(decision) for decision in self.decisions],
+            "active_rules": list(self.active_rules),
         }
 
 
@@ -92,6 +95,10 @@ class LocalAgentAdapter:
     def usage_path(self) -> Path:
         return self.state_dir / "usage.json"
 
+    @property
+    def rules_path(self) -> Path:
+        return self.state_dir / "rules.json"
+
     def prepare(
         self,
         task: str,
@@ -99,7 +106,8 @@ class LocalAgentAdapter:
         *,
         top_k: int = 3,
     ) -> AdapterPlan:
-        return AdapterPlan(task, self.router.decide(task, signals, top_k))
+        active_rules = tuple(rule.to_dict() for rule in RuleStore.load(self.rules_path).active())
+        return AdapterPlan(task, tuple(self.router.decide(task, signals, top_k)), active_rules)
 
     def decide_entity(self, entity: Mapping[str, Any]) -> dict[str, Any]:
         return self.decision_matrix.decide(entity).to_dict()
@@ -209,6 +217,55 @@ class LocalAgentAdapter:
         store.save(self.feedback_path)
         return event
 
+    def sync_rules(self) -> dict[str, Any]:
+        """Persist metacognition candidates without enabling or applying them."""
+
+        store = FeedbackStore.load(self.feedback_path)
+        analysis = MetaCognitionEngine().analyze(store)
+        rules = RuleStore.load(self.rules_path)
+        rules.upsert_candidates(analysis["rule_candidates"])
+        rules.save(self.rules_path)
+        return {
+            "rules": rules.to_dict(),
+            "active_rules": [rule.to_dict() for rule in rules.active()],
+            "registry_mutated": False,
+            "injection": "explicit-review-required",
+            "storage": str(self.rules_path),
+        }
+
+    def review_rule(self, rule_id: str, decision: str, note: str) -> dict[str, Any]:
+        self.sync_rules()
+        rules = RuleStore.load(self.rules_path)
+        rule = rules.review(rule_id, decision, note)
+        rules.save(self.rules_path)
+        return {
+            "rule": rule.to_dict(),
+            "active_rules": [item.to_dict() for item in rules.active()],
+            "registry_mutated": False,
+            "storage": str(self.rules_path),
+        }
+
+    def revoke_rule(self, rule_id: str, note: str) -> dict[str, Any]:
+        rules = RuleStore.load(self.rules_path)
+        rule = rules.revoke(rule_id, note)
+        rules.save(self.rules_path)
+        return {
+            "rule": rule.to_dict(),
+            "active_rules": [item.to_dict() for item in rules.active()],
+            "registry_mutated": False,
+            "storage": str(self.rules_path),
+        }
+
+    def rules_report(self) -> dict[str, Any]:
+        rules = RuleStore.load(self.rules_path)
+        return {
+            "rules": rules.to_dict(),
+            "active_rules": [rule.to_dict() for rule in rules.active()],
+            "registry_mutated": False,
+            "injection": "active-rules-exposed-to-plan",
+            "storage": str(self.rules_path),
+        }
+
     def report(self) -> dict[str, Any]:
         store = FeedbackStore.load(self.feedback_path)
         ledger = UsageLedger.load(self.usage_path)
@@ -222,6 +279,7 @@ class LocalAgentAdapter:
             "lifecycle_proposals": [asdict(propose(skill)) for skill in projected_skills],
             "metrics": metrics,
             "metacognition": metacognition,
+            "rules": self.rules_report(),
             "state_dir": str(self.state_dir),
         }
 
