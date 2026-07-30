@@ -3,7 +3,7 @@
 > 复核日期：2026-07-30
 > 项目版本：0.2.4（当前本地分支包含后续未发布增量）
 > 测试通过：37/37 单元测试通过，public-check 通过
-> Git 状态：工作区干净；HEAD=`bec9512`；`main` 比 `origin/main` 超前 9 个提交
+> Git 状态：工作区干净；本地 `main` 已初始化并配置 `origin`，远程同步另行执行
 
 ---
 
@@ -464,4 +464,4 @@ graph TB
 
 ---
 
-> **总结：** Agent Manager 0.2.4 已从治理契约参考实现推进为可执行、可审计、可恢复的本地控制平面：Router、Graph Scheduler、trace、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback 和只读文件审计均已有可验证实现。当前本地 `main` 工作区干净，最新提交为 `bec9512`，并领先 `origin/main` 9 个提交。后续重点是 provider/host 适配、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
+> **总结：** Agent Manager 0.2.4 已从治理契约参考实现推进为可执行、可审计、可恢复的本地控制平面：Router、Graph Scheduler、trace、反馈候选、实体级 Script/Skill/human-review 门控、promotion/rollback 和只读文件审计均已有可验证实现。当前本地 `main` 工作区干净并已配置 `origin`；后续重点是 provider/host 适配、自动反思与规则蒸馏、Skill→Script 固化、子图/可视化和自动清理；GitHub Actions 的远程绿灯仍需单独确认。
