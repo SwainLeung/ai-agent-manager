@@ -1150,5 +1150,90 @@ class SandboxModeTests(unittest.TestCase):
         self.assertFalse(result.registry_mutated)
 
 
+
+class HealthCheckTests(unittest.TestCase):
+    def test_health_file_not_found(self):
+        from agent_manager.health import run_health_check
+        result = run_health_check({"id": "x", "type": "file", "path": "/nonexistent/file.txt"})
+        self.assertEqual(result.status, "fail")
+
+    def test_health_file_exists(self):
+        from agent_manager.health import run_health_check
+        import tempfile, os
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as f:
+            f.write(b"hello")
+            path = f.name
+        try:
+            result = run_health_check({"id": "x", "type": "file", "path": path})
+            self.assertEqual(result.status, "ok")
+        finally:
+            os.unlink(path)
+
+    def test_health_url_timeout_is_fail(self):
+        from agent_manager.health import run_health_check
+        result = run_health_check({"id": "x", "type": "url", "path": "http://localhost:99999/nonexistent", "timeout_seconds": 1})
+        self.assertEqual(result.status, "fail")
+
+
+class CleanupTests(unittest.TestCase):
+    def test_cleanup_scan_finds_pycache_files(self):
+        from agent_manager.cleanup import scan_cleanup_candidates
+        import tempfile, os
+        with tempfile.TemporaryDirectory() as d:
+            # Create a pycache-like file
+            cache_dir = os.path.join(d, "__pycache__")
+            os.makedirs(cache_dir)
+            old_file = os.path.join(cache_dir, "old.cpython-3x.pyc")
+            with open(old_file, "w") as f:
+                f.write("x")
+            # Set file to appear old
+            import time
+            old_time = time.time() - 48 * 3600
+            os.utime(old_file, (old_time, old_time))
+            report = scan_cleanup_candidates(d, max_age_hours=1)
+            self.assertGreater(report["file_count"], 0)
+            self.assertTrue(report["dry_run"])
+
+
+
+class TTLTests(unittest.TestCase):
+    def test_evict_expired_cold_skill(self):
+        from agent_manager.registry import evict_expired, TTLConfig
+        from agent_manager.models import Skill
+        skills = (Skill(id="old.skill", layer="domain", kind="skill", frequency="cold", version="0.1.0",
+                         status="stable", calls=100, successes=95, last_used="2024-01-01", triggers=["x"]),)
+        expired = evict_expired(skills, TTLConfig(cold_ttl_days=30))
+        self.assertEqual(len(expired), 1)
+        self.assertEqual(expired[0][0], "old.skill")
+
+    def test_evict_expired_no_last_used_skipped(self):
+        from agent_manager.registry import evict_expired
+        from agent_manager.models import Skill
+        skills = (Skill(id="n.skill", layer="domain", kind="skill", frequency="cold", version="0.1.0",
+                         status="stable", calls=5, successes=3, last_used=None, triggers=["x"]),)
+        expired = evict_expired(skills)
+        self.assertEqual(len(expired), 0)
+
+
+class CompactionTests(unittest.TestCase):
+    def test_compact_merges_duplicates(self):
+        from agent_manager.rules import compact_rules
+        rules = [
+            {"scope": "project", "subject": "tone", "signal": "correction", "confidence": 0.7, "note": "a"},
+            {"scope": "project", "subject": "tone", "signal": "correction", "confidence": 0.9, "note": "b"},
+        ]
+        result = compact_rules(rules)
+        self.assertEqual(len(result["merged"]), 1)
+        self.assertEqual(result["merged"][0]["confidence"], 0.9)
+        self.assertEqual(result["merged"][0]["merged_from"], 2)
+
+    def test_compact_archives_low_confidence(self):
+        from agent_manager.rules import compact_rules
+        rules = [{"scope": "project", "subject": "old", "signal": "correction", "confidence": 0.1, "note": "stale"}]
+        result = compact_rules(rules)
+        self.assertEqual(len(result["archived"]), 1)
+        self.assertEqual(len(result["merged"]), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -22,6 +22,8 @@ from .solidification import ScriptCandidate, SkillScriptCompiler, Solidification
 from .analyzer import analyze_trace
 from .prompt_registry import PromptRegistry, PromptTemplate
 from .sandbox import SandboxError, SandboxReport, ScriptSandbox
+from .health import run_health_check, run_health_checks
+from .cleanup import scan_cleanup_candidates
 from .visualization import render
 
 __all__ = [
@@ -86,5 +88,8 @@ __all__ = [
     "PromptRegistry",
     "PromptTemplate",
     "ScriptSandbox",
+    "run_health_check",
+    "run_health_checks",
+    "scan_cleanup_candidates",
     "render",
 ]

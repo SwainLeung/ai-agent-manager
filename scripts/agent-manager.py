@@ -259,6 +259,64 @@ def load_records_file(path: Path) -> list[dict[str, Any]]:
 
 
 
+
+
+def cmd_adapter_health_run(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.health import run_health_checks
+    import json as _json
+    configs = []
+    if args.file:
+        configs = _json.loads(Path(args.file).read_text(encoding="utf-8"))
+    elif args.config:
+        for pair in args.config:
+            k, v = pair.split("=", 1)
+            configs.append({"id": k, "type": "file", "path": v})
+    results = run_health_checks(configs)
+    print(_json.dumps(results, ensure_ascii=False, indent=2))
+    return 0
+
+
+
+
+
+
+def cmd_adapter_ttl_check(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.registry import evict_expired, TTLConfig
+    from .registry import SkillRegistry
+    registry = SkillRegistry.load(ROOT / "config" / "skill-registry.json")
+    ttl = TTLConfig(
+        cold_ttl_days=args.cold or 90,
+        warm_ttl_days=args.warm or 180,
+        hot_ttl_days=args.hot or 365,
+    )
+    expired = evict_expired(registry.skills, ttl)
+    print(json.dumps({"expired": list(expired), "count": len(expired)}, ensure_ascii=False, indent=2))
+    return 0
+
+
+
+
+def cmd_adapter_rules_compact(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.rules import compact_rules
+    from agent_manager.rules import RuleStore
+    store = RuleStore.load(args.state_dir / "rules.json")
+    active = [r.to_dict() if hasattr(r, "to_dict") else r for r in store.active_rules]
+    result = compact_rules(active)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_adapter_cleanup_scan(args: argparse.Namespace) -> int:
+    import json
+    from agent_manager.cleanup import scan_cleanup_candidates
+    report = scan_cleanup_candidates(args.root, max_age_hours=args.max_age, dry_run=not args.execute)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_adapter_analyze(args: argparse.Namespace) -> int:
     from agent_manager.recorder import ExecutionRecorder
     from agent_manager.analyzer import analyze_trace
@@ -793,6 +851,32 @@ def build_parser() -> argparse.ArgumentParser:
     lc_fix.add_argument("--format", default="text", choices=["text", "json"])
     lc_fix.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
     lc_fix.set_defaults(func=cmd_adapter_lifecycle_fix)
+
+    health = adapter_sub.add_parser("health")
+    health.add_argument("--file", type=Path, help="JSON file with health check configs")
+    health.add_argument("--config", nargs="*", help="id=path pairs")
+    health.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    health.set_defaults(func=cmd_adapter_health_run)
+
+    cleanup = adapter_sub.add_parser("cleanup")
+    cleanup.add_argument("--root", default=str(ROOT))
+    cleanup.add_argument("--max-age", type=float, default=24.0)
+    cleanup.add_argument("--execute", action="store_true", help="actually delete files")
+    cleanup.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    cleanup.set_defaults(func=cmd_adapter_cleanup_scan)
+
+    ttl = adapter_sub.add_parser("ttl")
+    ttl.add_argument("--cold", type=int, default=90)
+    ttl.add_argument("--warm", type=int, default=180)
+    ttl.add_argument("--hot", type=int, default=365)
+    ttl.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    ttl.set_defaults(func=cmd_adapter_ttl_check)
+
+    rules_compact = adapter_sub.add_parser("rules")  # reuse rules subcommand
+    rules_compact_sub = rules_compact.add_subparsers(dest="rules_command", required=True)
+    rc_cmd = rules_compact_sub.add_parser("compact")
+    rc_cmd.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    rc_cmd.set_defaults(func=cmd_adapter_rules_compact)
 
     rules = adapter_sub.add_parser("rules")
     rules_sub = rules.add_subparsers(dest="rules_command", required=True)

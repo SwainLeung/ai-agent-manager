@@ -5,6 +5,64 @@ from pathlib import Path
 from typing import Iterable
 
 from .models import Skill
+from dataclasses import dataclass
+
+
+
+
+@dataclass(frozen=True)
+class TTLConfig:
+    cold_ttl_days: int = 90
+    warm_ttl_days: int = 180
+    hot_ttl_days: int = 365
+
+
+DEFAULT_TTL = TTLConfig()
+
+
+def evict_expired(skills: tuple, ttl: TTLConfig | None = None, now: str | None = None) -> tuple[str, ...]:
+    """Return IDs of skills whose last_used exceeds frequency TTL.
+
+    Parameters
+    ----------
+    skills : tuple of Skill objects
+    ttl : TTLConfig, optional
+    now : str, optional ISO date
+
+    Returns
+    -------
+    tuple of (skill_id, frequency, days_since_last_use)
+    """
+    from datetime import datetime, timezone
+    from dateutil import parser as dateparser
+    cfg = ttl or DEFAULT_TTL
+    ref = datetime.fromisoformat(now) if now else datetime.now(timezone.utc)
+    expired = []
+    for skill in skills:
+        if not skill.last_used:
+            continue
+        try:
+            last = dateparser.parse(skill.last_used) if "T" in skill.last_used else datetime.fromisoformat(skill.last_used)
+        except (ValueError, TypeError):
+            continue
+        days = (ref - last).days if last.tzinfo else (ref.replace(tzinfo=None) - last).days
+        if days < 0:
+            days = 0
+        tier_days = {"cold": cfg.cold_ttl_days, "warm": cfg.warm_ttl_days, "hot": cfg.hot_ttl_days}
+        limit = tier_days.get(skill.frequency, cfg.cold_ttl_days)
+        if days > limit:
+            expired.append((skill.id, skill.frequency, days, limit))
+    return tuple(expired)
+
+
+def format_ttl_status(expired: tuple) -> str:
+    """Return human-readable TTL status."""
+    if not expired:
+        return "No expired skills."
+    lines = ["Expired skills (ID | frequency | days since use / TTL):"]
+    for sid, freq, days, limit in expired:
+        lines.append(f"  {sid:<28} {freq:<8} {days:>4}d / {limit}d")
+    return "\n".join(lines)
 
 
 class RegistryError(ValueError):

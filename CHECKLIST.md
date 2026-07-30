@@ -256,7 +256,7 @@
 
 ---
 
-#### [ ] 10. Hot/cold data TTL eviction for registry entries
+#### [x] 10. Hot/cold data TTL eviction (completed 2026-07-31) for registry entries
 
 - **Target version**: v2.0.0
 - **Dual-pyramid domain**: Dual pyramid (§1)
@@ -271,7 +271,7 @@
 - **Dependencies**: Registry `last_used` field, `entropy.py`, new archival persistence.
 - **Estimated complexity**: ⭐⭐⭐ (~300 lines)
 
-#### [ ] 11. Temp file garbage collector
+#### [x] 11. Temp file garbage collector (completed 2026-07-31)
 
 - **Target version**: v2.0.0
 - **Dual-pyramid domain**: Anti-entropy governance (§5)
@@ -300,7 +300,7 @@
 - **Dependencies**: `rules.py` RuleStore, `feedback.py` candidates().
 - **Estimated complexity**: ⭐⭐⭐ (~350 lines)
 
-#### [ ] 13. Data source health checker
+#### [x] 13. Data source health checker (completed 2026-07-31)
 
 - **Target version**: v2.0.0
 - **Dual-pyramid domain**: Anti-entropy governance (§5)

@@ -174,3 +174,64 @@ class RuleStore:
         if not isinstance(payload, list):
             raise ValueError("rule store must contain a list")
         return cls(GovernedRule.from_dict(item) for item in payload)
+
+
+def compact_rules(active_rules: list) -> dict:
+    """Deduplicate and prune expired rules.
+
+    Parameters
+    ----------
+    active_rules : list of dict with keys: scope, subject, signal, confidence, note, created
+
+    Returns
+    -------
+    dict with: merged (list), contradictions (list), archived (list), summary
+    """
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for rule in active_rules:
+        key = (str(rule.get("scope", "")), str(rule.get("subject", "")), str(rule.get("signal", "")))
+        groups[key].append(rule)
+
+    merged = []
+    contradictions = []
+    archived = []
+
+    for key, group in groups.items():
+        scope, subject, signal = key
+        if len(group) > 1:
+            # Merge: keep highest confidence
+            best = max(group, key=lambda r: float(r.get("confidence", 0)))
+            merged.append({
+                "scope": scope, "subject": subject, "signal": signal,
+                "confidence": best["confidence"], "note": best.get("note", ""),
+                "merged_from": len(group),
+            })
+        else:
+            merged.append(dict(group[0]))
+
+        # Contradiction: same scope+subject but opposite signal
+        for g in group:
+            g_signal = str(g.get("signal", ""))
+            if g_signal != signal and (scope + subject) in [str(k[0]) + str(k[1]) for k in groups]:
+                if g_signal not in ("correction", "approval"):
+                    contradictions.append({
+                        "scope": scope, "subject": subject,
+                        "signal_a": signal, "signal_b": g_signal,
+                    })
+
+    # Archive rules with confidence < 0.3 (expired)
+    archived = [r for r in merged if float(r.get("confidence", 0)) < 0.3]
+    merged = [r for r in merged if float(r.get("confidence", 0)) >= 0.3]
+
+    return {
+        "merged": merged,
+        "contradictions": contradictions,
+        "archived": archived,
+        "summary": {
+            "input_count": len(active_rules),
+            "merged_count": len(merged),
+            "contradiction_count": len(contradictions),
+            "archived_count": len(archived),
+        }
+    }
