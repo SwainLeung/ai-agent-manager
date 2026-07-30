@@ -931,5 +931,59 @@ class VisualizationTests(unittest.TestCase):
             render(events, "unsupported_format")
 
 
+
+class PitfallKbTests(unittest.TestCase):
+    def test_pitfall_summary_groups_and_ranks(self):
+        from agent_manager.feedback import FeedbackStore
+        from agent_manager.models import FeedbackEvent
+        store = FeedbackStore([
+            FeedbackEvent("pitfall", "project", "sorting", "wrong order", 0.9),
+            FeedbackEvent("pitfall", "project", "sorting", "wrong order again", 0.95),
+            FeedbackEvent("pitfall", "project", "filtering", "missing filter", 0.8),
+            FeedbackEvent("correction", "project", "tone", "use concise", 0.7),
+        ])
+        summary = store.pitfall_summary()
+        self.assertEqual(len(summary), 2)  # two distinct pitfall subjects
+        self.assertEqual(summary[0]["subject"], "sorting")  # higher count first
+        self.assertEqual(summary[0]["count"], 2)
+
+    def test_pitfall_detail_returns_events(self):
+        from agent_manager.feedback import FeedbackStore
+        from agent_manager.models import FeedbackEvent
+        store = FeedbackStore([
+            FeedbackEvent("pitfall", "project", "sorting", "wrong order", 0.9),
+        ])
+        summary = store.pitfall_summary()
+        self.assertEqual(len(summary), 1)
+        detail = store.pitfall_detail(summary[0]["id"])
+        self.assertEqual(len(detail), 1)
+        self.assertEqual(detail[0]["note"], "wrong order")
+
+
+class SlimReportTests(unittest.TestCase):
+    def test_slim_report_categorizes_findings(self):
+        from agent_manager.entropy import slim_report
+        findings = [
+            {"code": "duplicate-signature", "subject": "skill.a", "message": "dup"},
+            {"code": "low-success", "subject": "skill.b", "message": "low"},
+            {"code": "lifecycle-stall", "subject": "skill.c", "message": "stall"},
+            {"code": "unknown", "subject": "skill.d", "message": "other"},
+        ]
+        report = slim_report(findings)
+        self.assertEqual(report["duplicate_count"], 1)
+        self.assertEqual(report["low_success_count"], 1)
+        self.assertEqual(report["stall_count"], 1)
+        self.assertEqual(report["other_count"], 1)
+        self.assertEqual(report["total_findings"], 4)
+
+    def test_print_slim_report_has_summary(self):
+        from agent_manager.entropy import slim_report, print_slim_report
+        findings = [{"code": "duplicate-signature", "subject": "x", "message": "dup"}]
+        report = slim_report(findings)
+        text = print_slim_report(report)
+        self.assertIn("Slim Report", text)
+        self.assertIn("1", text)
+
+
 if __name__ == "__main__":
     unittest.main()

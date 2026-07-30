@@ -256,6 +256,43 @@ def load_records_file(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+
+def cmd_adapter_pitfall_list(args: argparse.Namespace) -> int:
+    adapter = adapter_from_args(args)
+    summary = adapter.pitfall_summary()
+    if not summary:
+        print("No pitfall entries found.")
+        return 0
+    print(f"{'ID':<16} {'Scope':<12} {'Subject':<20} {'Count':<8} {'Confidence':<12}")
+    print("-" * 68)
+    for item in summary:
+        print(f"{item['id']:<16} {item['scope']:<12} {item['subject']:<20} {item['count']:<8} {item['latest_confidence']:<12.2f}")
+    return 0
+
+
+def cmd_adapter_pitfall_show(args: argparse.Namespace) -> int:
+    adapter = adapter_from_args(args)
+    detail = adapter.pitfall_detail(args.id)
+    if not detail:
+        print(f"No pitfall found with id: {args.id}", file=sys.stderr)
+        return 1
+    for entry in detail:
+        print(f"  [{entry['timestamp']}] confidence={entry['confidence']:.2f}  {entry['note']}")
+    return 0
+
+
+
+
+def cmd_adapter_report_slim(args: argparse.Namespace) -> int:
+    adapter = adapter_from_args(args)
+    if args.format == "json":
+        import json
+        print(json.dumps(adapter.slim_report(), ensure_ascii=False, indent=2))
+    else:
+        print(adapter.print_slim_report())
+    return 0
+
+
 def cmd_adapter_solidify(args: argparse.Namespace) -> int:
     records = load_records_file(args.records)
     result = adapter_from_args(args).solidify_skill(
@@ -650,7 +687,18 @@ def build_parser() -> argparse.ArgumentParser:
     report = adapter_sub.add_parser("report")
     report.add_argument("--output", type=Path)
     report.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    report.add_argument("--format", default="text", choices=["text", "json"])
     report.set_defaults(func=cmd_adapter_report)
+
+    pitfall = adapter_sub.add_parser("pitfall")
+    pitfall_sub = pitfall.add_subparsers(dest="pitfall_command", required=True)
+    pf_list = pitfall_sub.add_parser("list")
+    pf_list.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    pf_list.set_defaults(func=cmd_adapter_pitfall_list)
+    pf_show = pitfall_sub.add_parser("show")
+    pf_show.add_argument("--id", required=True)
+    pf_show.add_argument("--state-dir", type=Path, default=ROOT / ".agent-manager")
+    pf_show.set_defaults(func=cmd_adapter_pitfall_show)
 
     rules = adapter_sub.add_parser("rules")
     rules_sub = rules.add_subparsers(dest="rules_command", required=True)

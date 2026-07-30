@@ -26,3 +26,50 @@ def audit(skills: list[Skill]) -> list[EntropyFinding]:
         if len(ids) > 1:
             findings.append(EntropyFinding("duplicate-signature", ",".join(ids), "skills share the same kind and triggers"))
     return findings
+
+
+def slim_report(findings: list[dict]) -> dict:
+    """Categorize entropy audit findings into a structured slim report.
+
+    Parameters
+    ----------
+    findings : list[dict]
+        Output of ``audit()``.
+
+    Returns
+    -------
+    dict with keys: duplicate_count, low_success_count, stall_count,
+    total_findings, categories (list per category).
+    """
+    dup = [f for f in findings if f.get("code") == "duplicate-signature"]
+    low = [f for f in findings if f.get("code") == "low-success"]
+    stall = [f for f in findings if f.get("code") == "lifecycle-stall"]
+    other = [f for f in findings if f.get("code") not in ("duplicate-signature", "low-success", "lifecycle-stall")]
+    report = {
+        "duplicate_count": len(dup),
+        "low_success_count": len(low),
+        "stall_count": len(stall),
+        "other_count": len(other),
+        "total_findings": len(findings),
+        "categories": {
+            "duplicate": [{"subject": f.get("subject", ""), "message": f.get("message", "")} for f in dup],
+            "low_success": [{"subject": f.get("subject", ""), "message": f.get("message", "")} for f in low],
+            "stalled": [{"subject": f.get("subject", ""), "message": f.get("message", "")} for f in stall],
+            "other": [{"subject": f.get("subject", ""), "message": f.get("message", "")} for f in other],
+        },
+    }
+    return report
+
+
+def print_slim_report(report: dict) -> str:
+    """Return human-readable slim report string."""
+    lines = [
+        "=== Slim Report ===",
+        f"  Duplicate signatures:  {report['duplicate_count']}",
+        f"  Low success rate:      {report['low_success_count']}",
+        f"  Lifecycle stalled:     {report['stall_count']}",
+        f"  Other findings:        {report['other_count']}",
+        f"  ─────────────────────",
+        f"  Total findings:        {report['total_findings']}",
+    ]
+    return "\n".join(lines) + "\n"

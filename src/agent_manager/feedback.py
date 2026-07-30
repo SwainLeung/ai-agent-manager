@@ -23,6 +23,52 @@ class FeedbackStore:
             raise ValueError("confidence must be between 0 and 1")
         self.events.append(event)
 
+    
+
+    def pitfall_summary(self) -> list[dict]:
+        """Return pitfall events grouped and ranked by frequency."""
+        pitfall_events = [e for e in self.events if e.event_type == "pitfall"]
+        grouped: dict[tuple[str, str, str], dict] = {}
+        for ev in pitfall_events:
+            key = (ev.scope, ev.subject, ev.event_type)
+            if key not in grouped:
+                grouped[key] = {
+                    "id": f"pitfall-{len(grouped) + 1}",
+                    "scope": ev.scope,
+                    "subject": ev.subject,
+                    "signal": ev.event_type,
+                    "count": 0,
+                    "latest_note": "",
+                    "latest_confidence": 0.0,
+                    "first_seen": "",
+                    "last_seen": "",
+                }
+            g = grouped[key]
+            g["count"] += 1
+            g["latest_note"] = ev.note or ""
+            g["latest_confidence"] = ev.confidence
+            if not g["first_seen"]:
+                g["first_seen"] = ""
+            g["last_seen"] = ""
+        result = sorted(grouped.values(), key=lambda x: x["count"], reverse=True)
+        for i, item in enumerate(result):
+            item["id"] = f"pitfall-{i + 1}"
+        return result
+
+    def pitfall_detail(self, pitfall_id: str) -> list[dict]:
+        """Return raw pitfall events matching a pitfall summary entry."""
+        summary = self.pitfall_summary()
+        target = next((s for s in summary if s["id"] == pitfall_id), None)
+        if not target:
+            return []
+        return [
+            {"note": e.note, "confidence": e.confidence}
+            for e in self.events
+            if e.event_type == "pitfall"
+            and e.scope == target["scope"]
+            and e.subject == target["subject"]
+        ]
+
     def candidates(self, minimum_confidence: float = 0.75) -> list[dict]:
         grouped: dict[tuple[str, str, str], list[FeedbackEvent]] = {}
         for event in self.events:

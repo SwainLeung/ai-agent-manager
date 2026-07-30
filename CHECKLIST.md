@@ -123,7 +123,7 @@
 - **Dependencies**: Recorder (`recorder.py`) already writes trace JSON; only output conversion needed.
 - **Estimated complexity**: ⭐ (1–2 Python modules, ~150 lines)
 
-#### [ ] 2. Pitfall knowledge base: queryable pitfall feedback store
+#### [x] 2. Pitfall knowledge base: queryable pitfall feedback store (completed 2026-07-30)
 
 - **Target version**: v1.1.0
 - **Dual-pyramid domain**: Loop Engineering — self-correction loop (§6)
@@ -138,7 +138,7 @@
 - **Dependencies**: FeedbackEvent types already exist in `feedback.py`. Persistence similar to FeedbackStore.
 - **Estimated complexity**: ⭐ (1 new module, ~200 lines)
 
-#### [ ] 3. Slim report: structural entropy audit → formatted report
+#### [x] 3. Slim report: structural entropy audit → formatted report (completed 2026-07-30)
 
 - **Target version**: v1.1.0
 - **Dual-pyramid domain**: Anti-entropy governance (§5)

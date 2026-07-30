@@ -313,6 +313,28 @@ class LocalAgentAdapter:
         target = Path(registry_path) if registry_path else self.registry_path
         return RegistryChangeWorkflow(target).rollback(proposal_file, write=write)
 
+
+
+    def pitfall_summary(self) -> list[dict]:
+        store = FeedbackStore.load(self.feedback_path)
+        return store.pitfall_summary()
+
+    def pitfall_detail(self, pitfall_id: str) -> list[dict]:
+        store = FeedbackStore.load(self.feedback_path)
+        return store.pitfall_detail(pitfall_id)
+
+    def slim_report(self) -> dict:
+        from .entropy import slim_report as _slim
+        from .registry import SkillRegistry
+        registry = SkillRegistry.load(self.registry_path)
+        findings = audit(registry)
+        return _slim(findings)
+
+    def print_slim_report(self) -> str:
+        from .entropy import print_slim_report as _print_slim
+        report = self.slim_report()
+        return _print_slim(report)
+
     def report(self) -> dict[str, Any]:
         store = FeedbackStore.load(self.feedback_path)
         ledger = UsageLedger.load(self.usage_path)
